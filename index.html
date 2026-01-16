@@ -1,82 +1,191 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StudyHelper Online</title>
-</head>
-<body style="font-family:Arial;text-align:center;padding-top:50px">
-  <h1>✅ StudyHelper Online</h1>
-  <p>Welcome to StudyHelper 🎉</p>
-</body>
-</html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyHelper Online</title>
 
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg,#4CAF50,#2e7d32);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>StudyHelper Online</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      background: #4CAF50;
-      color: white;
-      padding: 20px;
-      text-align: center;
-    }
-    .container {
-      padding: 20px;
-    }
-    .card {
-      background: white;
-      padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    button {
-      background: #4CAF50;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-  </style>
+.app {
+  background: #fff;
+  width: 95%;
+  max-width: 420px;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  display: none;
+}
+
+h1,h2 {
+  text-align: center;
+}
+
+input, textarea {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  margin: 8px 0;
+  border: none;
+  border-radius: 12px;
+  background: #4CAF50;
+  color: #fff;
+  font-size: 16px;
+}
+
+button:active {
+  background: #388e3c;
+}
+
+.nav button {
+  font-size: 14px;
+}
+
+.card {
+  background: #f5f5f5;
+  padding: 12px;
+  border-radius: 12px;
+  margin: 10px 0;
+}
+
+small {
+  color: #777;
+}
+
+#login {
+  display: block;
+}
+</style>
 </head>
+
 <body>
 
-<header>
-  <h1>📚 StudyHelper Online</h1>
-  <p>Gawing mas madali ang pag-aaral</p>
-</header>
+<!-- LOGIN -->
+<div class="app" id="login">
+  <h1>🔐 Login</h1>
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+  <small>Demo account: any username/password</small>
+</div>
 
-<div class="container">
-  <div class="card">
-    <h3>📝 Notes</h3>
-    <p>Maglagay ng study notes dito.</p>
-    <button>Open Notes</button>
+<!-- MAIN APP -->
+<div class="app" id="main">
+  <h1>✅ StudyHelper</h1>
+
+  <div class="nav">
+    <button onclick="show('tutorial')">📖 Tutorial</button>
+    <button onclick="show('notes')">📘 Notes</button>
+    <button onclick="show('quiz')">📝 Quiz</button>
+    <button onclick="show('timer')">⏱ Timer</button>
+    <button onclick="show('progress')">📊 Progress</button>
+    <button onclick="logout()">🚪 Logout</button>
   </div>
 
-  <div class="card">
-    <h3>❓ Quiz</h3>
-    <p>Subukan ang kaalaman mo.</p>
-    <button>Start Quiz</button>
+  <!-- TUTORIAL -->
+  <div id="tutorial" class="card">
+    <h2>📖 Tutorial</h2>
+    <p>1️⃣ Gumawa ng notes</p>
+    <p>2️⃣ Sagutan ang quiz</p>
+    <p>3️⃣ Gumamit ng study timer</p>
+    <p>4️⃣ Tingnan ang progress</p>
   </div>
 
-  <div class="card">
-    <h3>⏰ Study Timer</h3>
-    <p>Mag-aral gamit ang timer.</p>
-    <button>Start Timer</button>
+  <!-- NOTES -->
+  <div id="notes" class="card" style="display:none">
+    <h2>📘 Notes</h2>
+    <textarea id="noteText" placeholder="Isulat ang notes mo"></textarea>
+    <button onclick="saveNote()">Save</button>
+    <p id="savedNote"></p>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="quiz" class="card" style="display:none">
+    <h2>📝 Quiz</h2>
+    <p>What is 2 + 2?</p>
+    <button onclick="checkQuiz(3)">3</button>
+    <button onclick="checkQuiz(4)">4</button>
+    <p id="quizResult"></p>
+  </div>
+
+  <!-- TIMER -->
+  <div id="timer" class="card" style="display:none">
+    <h2>⏱ Study Timer</h2>
+    <p id="time">25:00</p>
+    <button onclick="startTimer()">Start</button>
+  </div>
+
+  <!-- PROGRESS -->
+  <div id="progress" class="card" style="display:none">
+    <h2>📊 Progress</h2>
+    <p id="progressText">Wala pang progress</p>
   </div>
 </div>
+
+<script>
+let seconds = 1500;
+let interval;
+
+function login() {
+  document.getElementById("login").style.display = "none";
+  document.getElementById("main").style.display = "block";
+}
+
+function logout() {
+  location.reload();
+}
+
+function show(id) {
+  ["tutorial","notes","quiz","timer","progress"].forEach(s=>{
+    document.getElementById(s).style.display="none";
+  });
+  document.getElementById(id).style.display="block";
+}
+
+function saveNote() {
+  const text = document.getElementById("noteText").value;
+  document.getElementById("savedNote").innerText = "Saved: " + text;
+  document.getElementById("progressText").innerText = "May saved notes ka na ✅";
+}
+
+function checkQuiz(ans) {
+  document.getElementById("quizResult").innerText =
+    ans === 4 ? "Tama! ✅" : "Mali ❌";
+  document.getElementById("progressText").innerText = "Nakagawa ka ng quiz ✅";
+}
+
+function startTimer() {
+  clearInterval(interval);
+  interval = setInterval(()=>{
+    if(seconds<=0){
+      clearInterval(interval);
+      alert("Tapos na!");
+      return;
+    }
+    seconds--;
+    let m = Math.floor(seconds/60);
+    let s = seconds%60;
+    document.getElementById("time").innerText =
+      m+":"+(s<10?"0":"")+s;
+  },1000);
+}
+</script>
 
 </body>
 </html>

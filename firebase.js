@@ -3,7 +3,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebas
 import { getAuth } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8Rtcm1MAawA",
+  apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmIMaAwA",
   authDomain: "studyhelper-app.firebaseapp.com",
   projectId: "studyhelper-app",
   storageBucket: "studyhelper-app.appspot.com",
@@ -12,6 +12,4 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-
-export { auth };
+export const auth = getAuth(app);

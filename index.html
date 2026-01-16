@@ -1,51 +1,105 @@
-<script type="module">
-  import { auth } from "/studyhelper-online/firebase.js";
-  import {
-    signInWithEmailAndPassword,
-    onAuthStateChanged,
-    signOut
-  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-
-  const loginBtn = document.getElementById("loginBtn");
-  const logoutBtn = document.getElementById("logoutBtn");
-
-  const loginCard = document.getElementById("loginCard");
-  const dashboard = document.getElementById("dashboard");
-
-  const emailInput = document.getElementById("email");
-  const passwordInput = document.getElementById("password");
-
-  const loginMsg = document.getElementById("loginMsg");
-  const userEmail = document.getElementById("userEmail");
-
-  // LOGIN
-  loginBtn.addEventListener("click", async () => {
-    loginMsg.textContent = "Logging in...";
-    try {
-      await signInWithEmailAndPassword(
-        auth,
-        emailInput.value.trim(),
-        passwordInput.value.trim()
-      );
-    } catch (err) {
-      loginMsg.textContent = err.message;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>StudyHelper Online</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      padding: 20px;
     }
-  });
-
-  // AUTH STATE
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      loginCard.classList.add("hidden");
-      dashboard.classList.remove("hidden");
-      userEmail.textContent = "Logged in as: " + user.email;
-    } else {
-      dashboard.classList.add("hidden");
-      loginCard.classList.remove("hidden");
+    .card {
+      max-width: 400px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
-  });
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
 
-  // LOGOUT
-  logoutBtn.addEventListener("click", async () => {
-    await signOut(auth);
-  });
-                             </script>
+  <!-- LOGIN -->
+  <div class="card" id="loginCard">
+    <h2>Login</h2>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button id="loginBtn">Login</button>
+    <p id="loginMsg"></p>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="card hidden" id="dashboard">
+    <h2>Dashboard</h2>
+    <p id="userEmail"></p>
+    <button id="logoutBtn">Logout</button>
+  </div>
+
+  <!-- SCRIPT -->
+  <script type="module">
+    import { auth } from "/studyhelper-online/firebase.js";
+    import {
+      signInWithEmailAndPassword,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    const loginCard = document.getElementById("loginCard");
+    const dashboard = document.getElementById("dashboard");
+
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+
+    const loginMsg = document.getElementById("loginMsg");
+    const userEmail = document.getElementById("userEmail");
+
+    loginBtn.addEventListener("click", async () => {
+      loginMsg.textContent = "Logging in...";
+      try {
+        await signInWithEmailAndPassword(
+          auth,
+          emailInput.value.trim(),
+          passwordInput.value.trim()
+        );
+      } catch (err) {
+        loginMsg.textContent = err.message;
+      }
+    });
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        loginCard.classList.add("hidden");
+        dashboard.classList.remove("hidden");
+        userEmail.textContent = "Logged in as: " + user.email;
+      } else {
+        dashboard.classList.add("hidden");
+        loginCard.classList.remove("hidden");
+      }
+    });
+
+    logoutBtn.addEventListener("click", async () => {
+      await signOut(auth);
+    });
+  </script>
+
+</body>
+</html>

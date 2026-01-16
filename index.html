@@ -1,368 +1,108 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>StudyHelper Online</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-:root{
-  --main:#4CAF50;
-  --bg:#f4f6f8;
-  --card:#ffffff;
-  --text:#000;
-}
-.dark{
-  --bg:#121212;
-  --card:#1e1e1e;
-  --text:#fff;
-}
-body{
-  margin:0;
-  font-family:Arial, sans-serif;
-  background:var(--bg);
-  color:var(--text);
-}
-header{
-  background:var(--main);
-  color:white;
-  padding:15px;
-  text-align:center;
-}
-nav{
-  display:flex;
-  flex-wrap:wrap;
-  background:#ddd;
-}
-nav button{
-  flex:1;
-  padding:10px;
-  border:none;
-}
-section{padding:15px}
-.card{
-  background:var(--card);
-  padding:15px;
-  border-radius:10px;
-  margin-bottom:15px;
-}
-input,textarea,select,button{
-  width:100%;
-  padding:8px;
-  margin-top:5px;
-}
-button{
-  background:var(--main);
-  color:white;
-  border:none;
-  border-radius:5px;
-}
-.hidden{display:none}
-.done{text-decoration:line-through;color:gray}
-.chat{border:1px solid #ccc;padding:5px;max-height:200px;overflow:auto}
-</style>
+  <meta charset="UTF-8" />
+  <title>StudyHelper Online</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      padding: 20px;
+    }
+    .card {
+      max-width: 400px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
 </head>
-
 <body>
 
-<header>
-<h2>📘 StudyHelper Online</h2>
-<p>All-in-One Study App</p>
-</header>
+  <!-- LOGIN -->
+  <div class="card" id="loginCard">
+    <h2>Login</h2>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button id="loginBtn">Login</button>
+    <p id="loginMsg"></p>
+  </div>
 
-<!-- LOGIN -->
-<section id="loginSec">
-<div class="card">
-<h3>Login</h3>
-<input id="luser" placeholder="Username">
-<input id="lpass" type="password" placeholder="Password">
-<button onclick="login()">Login</button>
-<hr>
-<button onclick="showRegister()">Register</button>
-</div>
-</section>
+  <!-- DASHBOARD -->
+  <div class="card hidden" id="dashboard">
+    <h2>Dashboard</h2>
+    <p id="userEmail"></p>
+    <button id="logoutBtn">Logout</button>
+  </div>
 
-<section id="registerSec" class="hidden">
-<div class="card">
-<h3>Register</h3>
-<input id="ruser" placeholder="Username">
-<input id="rpass" type="password" placeholder="Password">
-<button onclick="register()">Create Account</button>
-<button onclick="showLogin()">Back</button>
-</div>
-</section>
+  <!-- FIREBASE + LOGIC -->
+  <script type="module">
+    import { auth } from "./firebase.js";
+    import {
+      signInWithEmailAndPassword,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
-<!-- APP -->
-<section id="app" class="hidden">
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
 
-<nav>
-<button onclick="showTab('home')">Home</button>
-<button onclick="showTab('planner')">Planner</button>
-<button onclick="showTab('study')">Study</button>
-<button onclick="showTab('smart')">Smart</button>
-<button onclick="showTab('tutorial')">Tutorial</button>
-<button onclick="showTab('settings')">Settings</button>
-</nav>
+    const loginCard = document.getElementById("loginCard");
+    const dashboard = document.getElementById("dashboard");
 
-<!-- HOME -->
-<div id="home" class="tab">
-<div class="card">
-<h3>Welcome</h3>
-<p>Use this app to organize, study, and prepare efficiently.</p>
-</div>
-</div>
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
 
-<!-- PLANNER -->
-<div id="planner" class="tab hidden">
+    const loginMsg = document.getElementById("loginMsg");
+    const userEmail = document.getElementById("userEmail");
 
-<div class="card">
-<h3>📅 Calendar</h3>
-<input type="date" id="calDate">
-<input id="calEvent" placeholder="Event">
-<button onclick="addEvent()">Add</button>
-<ul id="calList"></ul>
-</div>
+    // LOGIN
+    loginBtn.addEventListener("click", async () => {
+      try {
+        await signInWithEmailAndPassword(
+          auth,
+          emailInput.value,
+          passwordInput.value
+        );
+        loginMsg.textContent = "Login successful!";
+      } catch (err) {
+        loginMsg.textContent = err.message;
+      }
+    });
 
-<div class="card">
-<h3>📌 To-Do List</h3>
-<input id="todoInput" placeholder="Task">
-<button onclick="addTodo()">Add</button>
-<ul id="todoList"></ul>
-</div>
+    // AUTH STATE
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        loginCard.classList.add("hidden");
+        dashboard.classList.remove("hidden");
+        userEmail.textContent = "Logged in as: " + user.email;
+      } else {
+        dashboard.classList.add("hidden");
+        loginCard.classList.remove("hidden");
+      }
+    });
 
-<div class="card">
-<h3>🏫 Class Schedule</h3>
-<input id="subject" placeholder="Subject">
-<input id="day" placeholder="Day">
-<input id="time" placeholder="Time">
-<button onclick="addClass()">Add</button>
-<ul id="classList"></ul>
-</div>
-
-</div>
-
-<!-- STUDY -->
-<div id="study" class="tab hidden">
-
-<div class="card">
-<h3>📝 Notes</h3>
-<textarea id="notes"></textarea>
-<button onclick="saveNotes()">Save</button>
-</div>
-
-<div class="card">
-<h3>📚 Save Materials</h3>
-<textarea id="materials"></textarea>
-<button onclick="saveMaterials()">Save</button>
-</div>
-
-<div class="card">
-<h3>❓ Quiz Creator</h3>
-<input id="q" placeholder="Question">
-<input id="a" placeholder="Answer">
-<button onclick="addQuiz()">Add</button>
-<ul id="quizList"></ul>
-</div>
-
-<div class="card">
-<h3>🎓 Exam Mode</h3>
-<button onclick="startExam()">Start Exam</button>
-<p id="examOut"></p>
-</div>
-
-<div class="card">
-<h3>⏱ Study Timer</h3>
-<h2 id="timer">25:00</h2>
-<button onclick="startTimer()">Start</button>
-</div>
-
-</div>
-
-<!-- SMART -->
-<div id="smart" class="tab hidden">
-
-<div class="card">
-<h3>🤖 Smart Assistant</h3>
-<div class="chat" id="chat"></div>
-<input id="ask">
-<button onclick="askAI()">Ask</button>
-</div>
-
-<div class="card">
-<h3>📄 Text → Quiz Generator</h3>
-<textarea id="quizText"></textarea>
-<button onclick="genQuiz()">Generate</button>
-<ul id="quizOut"></ul>
-</div>
-
-<div class="card">
-<h3>🧠 Text Converter</h3>
-<textarea id="rawText"></textarea>
-<button onclick="convertText()">Convert</button>
-<textarea id="converted"></textarea>
-</div>
-
-</div>
-
-<!-- TUTORIAL -->
-<div id="tutorial" class="tab hidden">
-<div class="card">
-<h3>How to Use</h3>
-<ol>
-<li>Create an account</li>
-<li>Add schedules and tasks</li>
-<li>Save notes and materials</li>
-<li>Generate quizzes</li>
-<li>Use smart tools</li>
-</ol>
-</div>
-</div>
-
-<!-- SETTINGS -->
-<div id="settings" class="tab hidden">
-<div class="card">
-<button onclick="toggleDark()">🌙 Dark Mode</button>
-<button onclick="resetAll()">♻ Reset All Data</button>
-<button onclick="logout()">🚪 Logout</button>
-</div>
-</div>
-
-</section>
-
-<script>
-// AUTH
-if(localStorage.logged==="true")showApp();
-function register(){
- localStorage.user=ruser.value;
- localStorage.pass=rpass.value;
- alert("Account created");
- showLogin();
-}
-function login(){
- if(luser.value===localStorage.user && lpass.value===localStorage.pass){
-  localStorage.logged="true";
-  showApp();
- } else alert("Wrong login");
-}
-function logout(){localStorage.clear();location.reload();}
-function showApp(){
- loginSec.classList.add("hidden");
- registerSec.classList.add("hidden");
- app.classList.remove("hidden");
-}
-function showRegister(){loginSec.classList.add("hidden");registerSec.classList.remove("hidden");}
-function showLogin(){registerSec.classList.add("hidden");loginSec.classList.remove("hidden");}
-
-// NAV
-function showTab(id){
- document.querySelectorAll(".tab").forEach(t=>t.classList.add("hidden"));
- document.getElementById(id).classList.remove("hidden");
-}
-
-// PLANNER
-function addEvent(){
- let e=JSON.parse(localStorage.events||"[]");
- e.push(calDate.value+" - "+calEvent.value);
- localStorage.events=JSON.stringify(e);renderEvents();
-}
-function renderEvents(){
- calList.innerHTML="";
- (JSON.parse(localStorage.events||"[]")).forEach(x=>{
-  let li=document.createElement("li");li.innerText=x;calList.appendChild(li);
- });
-}
-renderEvents();
-
-function addTodo(){
- let t=JSON.parse(localStorage.todos||"[]");
- t.push({text:todoInput.value,done:false});
- localStorage.todos=JSON.stringify(t);renderTodos();
-}
-function renderTodos(){
- todoList.innerHTML="";
- let t=JSON.parse(localStorage.todos||"[]");
- t.forEach((x,i)=>{
-  let li=document.createElement("li");
-  li.innerText=x.text;li.className=x.done?"done":"";
-  li.onclick=()=>{x.done=!x.done;t[i]=x;localStorage.todos=JSON.stringify(t);renderTodos();}
-  todoList.appendChild(li);
- });
-}
-renderTodos();
-
-function addClass(){
- let c=JSON.parse(localStorage.classes||"[]");
- c.push(subject.value+" | "+day.value+" | "+time.value);
- localStorage.classes=JSON.stringify(c);renderClasses();
-}
-function renderClasses(){
- classList.innerHTML="";
- (JSON.parse(localStorage.classes||"[]")).forEach(x=>{
-  let li=document.createElement("li");li.innerText=x;classList.appendChild(li);
- });
-}
-renderClasses();
-
-// STUDY
-notes.value=localStorage.notes||"";
-function saveNotes(){localStorage.notes=notes.value;}
-
-materials.value=localStorage.materials||"";
-function saveMaterials(){localStorage.materials=materials.value;}
-
-function addQuiz(){
- let li=document.createElement("li");
- li.innerText=q.value+" — "+a.value;
- quizList.appendChild(li);
-}
-
-function startExam(){
- examOut.innerText="Exam started. Review your quizzes!";
-}
-
-let sec=1500,intv;
-function startTimer(){
- clearInterval(intv);
- intv=setInterval(()=>{
-  if(sec<=0){clearInterval(intv);alert("Time up");return;}
-  sec--;timer.innerText=Math.floor(sec/60)+":"+("0"+sec%60).slice(-2);
- },1000);
-}
-
-// SMART
-function askAI(){
- let q=ask.value.toLowerCase();
- let r="Study consistently.";
- if(q.includes("exam"))r="Review notes and practice quizzes.";
- if(q.includes("schedule"))r="Plan your tasks early.";
- chat.innerHTML+=`<div>You: ${ask.value}</div><div>AI: ${r}</div>`;
- ask.value="";
-}
-
-function genQuiz(){
- quizOut.innerHTML="";
- quizText.value.split(".").slice(0,5).forEach((x,i)=>{
-  let li=document.createElement("li");
-  li.innerText="Q"+(i+1)+": "+x.trim();
-  quizOut.appendChild(li);
- });
-}
-
-function convertText(){
- converted.value=rawText.value.split(".").map(x=>"• "+x.trim()).join("\n");
-}
-
-// SETTINGS
-function toggleDark(){
- document.body.classList.toggle("dark");
- localStorage.dark=document.body.classList.contains("dark");
-}
-if(localStorage.dark==="true")document.body.classList.add("dark");
-
-function resetAll(){
- if(confirm("Reset all data?")){localStorage.clear();location.reload();}
-}
-</script>
+    // LOGOUT
+    logoutBtn.addEventListener("click", async () => {
+      await signOut(auth);
+    });
+  </script>
 
 </body>
 </html>

@@ -12,7 +12,6 @@
       background: linear-gradient(135deg,#667eea,#764ba2);
       min-height: 100vh;
       color: #333;
-      display: none; /* 🔥 anti-blink */
     }
 
     header {
@@ -49,7 +48,7 @@
     }
 
     td:hover {
-      background: #f0f0ff;
+      background: #eef;
       cursor: pointer;
     }
 
@@ -96,32 +95,6 @@
     </tr>
   </table>
 </div>
-
-<!-- 🔥 Firebase Auth Safe Loader -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-
-  const firebaseConfig = {
-    /* SAME CONFIG AS home.html */
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-
-  let checked = false;
-
-  onAuthStateChanged(auth, user => {
-    if (user) {
-      document.body.style.display = "block"; // ✅ show page
-      checked = true;
-    } else {
-      if (checked) {
-        window.location.href = "index.html";
-      }
-    }
-  });
-</script>
 
 </body>
 </html>

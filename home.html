@@ -114,7 +114,16 @@
     doc,
     serverTimestamp
   } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  onSnapshot,
+  deleteDoc,
+  doc,
+  updateDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
   const firebaseConfig = {
     apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
     authDomain: "studyhelper-app.firebaseapp.com",
@@ -123,7 +132,72 @@
     messagingSenderId: "390954392930",
     appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
   };
+const taskInput = document.getElementById("taskInput");
+const addTaskBtn = document.getElementById("addTaskBtn");
+const taskList = document.getElementById("taskList");
 
+let currentUserUID = null;
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUserUID = user.uid;
+    loadTasks();
+  }
+});
+
+addTaskBtn.addEventListener("click", async () => {
+  if (!taskInput.value) return;
+
+  await addDoc(
+    collection(db, "users", currentUserUID, "tasks"),
+    {
+      text: taskInput.value,
+      done: false,
+      createdAt: serverTimestamp()
+    }
+  );
+
+  taskInput.value = "";
+});
+
+function loadTasks() {
+  const q = collection(db, "users", currentUserUID, "tasks");
+
+  onSnapshot(q, (snapshot) => {
+    taskList.innerHTML = "";
+
+    snapshot.forEach((docSnap) => {
+      const task = docSnap.data();
+      const li = document.createElement("li");
+
+      li.innerHTML = `
+        <input type="checkbox" ${task.done ? "checked" : ""} />
+        <span style="text-decoration:${task.done ? "line-through" : "none"}">
+          ${task.text}
+        </span>
+        <button style="margin-left:10px;color:red;">Delete</button>
+      `;
+
+      const checkbox = li.querySelector("input");
+      const deleteBtn = li.querySelector("button");
+
+      checkbox.addEventListener("change", () => {
+        updateDoc(
+          doc(db, "users", currentUserUID, "tasks", docSnap.id),
+          { done: checkbox.checked }
+        );
+      });
+
+      deleteBtn.addEventListener("click", () => {
+        deleteDoc(
+          doc(db, "users", currentUserUID, "tasks", docSnap.id)
+        );
+      });
+
+      taskList.appendChild(li);
+    });
+  });
+              }
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);

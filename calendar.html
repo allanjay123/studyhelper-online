@@ -1,15 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Calendar Test</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StudyHelper | Calendar</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{
   margin:0;
-  font-family:Arial;
+  font-family:Arial, sans-serif;
   background:linear-gradient(135deg,#667eea,#764ba2);
+}
+header{
+  background:#fff;
+  padding:15px 20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
 .container{
   max-width:900px;
@@ -18,32 +25,154 @@ body{
   padding:20px;
   border-radius:12px;
 }
-table{width:100%;border-collapse:collapse}
+h2{text-align:center}
+
+.controls{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+button{
+  padding:8px 12px;
+  border:none;
+  border-radius:6px;
+  background:#667eea;
+  color:#fff;
+  cursor:pointer;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+}
 th,td{
   border:1px solid #ddd;
-  padding:14px;
+  padding:12px;
   text-align:center;
 }
 th{background:#667eea;color:#fff}
+td:hover{background:#eef;cursor:pointer}
+.today{background:#cfd9ff !important;font-weight:bold}
+.has-task{background:#ffe7a8}
+.task-box{
+  margin-top:15px;
+  padding:10px;
+  background:#f4f6ff;
+  border-radius:8px;
+}
+input{
+  width:70%;
+  padding:6px;
+}
 </style>
 </head>
 
 <body>
 
+<header>
+  <strong>📅 Calendar</strong>
+  <button onclick="location.href='home.html'">⬅ Back</button>
+</header>
+
 <div class="container">
-<h2>Monthly Calendar (TEST)</h2>
-<table>
-<tr>
-<th>Sun</th><th>Mon</th><th>Tue</th>
-<th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th>
-</tr>
-<tr><td></td><td></td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td></tr>
-<tr><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td></tr>
-<tr><td>13</td><td>14</td><td>15</td><td>16</td><td>17</td><td>18</td><td>19</td></tr>
-<tr><td>20</td><td>21</td><td>22</td><td>23</td><td>24</td><td>25</td><td>26</td></tr>
-<tr><td>27</td><td>28</td><td>29</td><td>30</td><td>31</td><td></td><td></td></tr>
-</table>
+  <div class="controls">
+    <button onclick="prevMonth()">◀</button>
+    <h2 id="monthYear"></h2>
+    <button onclick="nextMonth()">▶</button>
+  </div>
+
+  <table id="calendar"></table>
+
+  <div class="task-box">
+    <strong id="selectedDate">Select a date</strong><br><br>
+    <input id="taskInput" placeholder="Add task / reminder">
+    <button onclick="saveTask()">Save</button>
+    <ul id="taskList"></ul>
+  </div>
 </div>
+
+<script>
+let date = new Date();
+let selectedDate = null;
+
+Notification.requestPermission();
+
+function renderCalendar(){
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  document.getElementById("monthYear").innerText =
+    date.toLocaleString("default",{month:"long"}) + " " + year;
+
+  const firstDay = new Date(year,month,1).getDay();
+  const lastDate = new Date(year,month+1,0).getDate();
+
+  let html = `
+    <tr>
+      <th>Sun</th><th>Mon</th><th>Tue</th>
+      <th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th>
+    </tr><tr>`;
+
+  for(let i=0;i<firstDay;i++) html += "<td></td>";
+
+  for(let d=1; d<=lastDate; d++){
+    const fullDate = `${year}-${month+1}-${d}`;
+    const tasks = JSON.parse(localStorage.getItem(fullDate)) || [];
+    const today = new Date();
+
+    let cls = "";
+    if(d===today.getDate() && month===today.getMonth() && year===today.getFullYear()) cls="today";
+    if(tasks.length) cls+=" has-task";
+
+    html += `<td class="${cls}" onclick="selectDate('${fullDate}')">${d}</td>`;
+
+    if((d+firstDay)%7===0) html += "</tr><tr>";
+  }
+
+  html += "</tr>";
+  document.getElementById("calendar").innerHTML = html;
+}
+
+function prevMonth(){date.setMonth(date.getMonth()-1);renderCalendar()}
+function nextMonth(){date.setMonth(date.getMonth()+1);renderCalendar()}
+
+function selectDate(d){
+  selectedDate = d;
+  document.getElementById("selectedDate").innerText = "Tasks for " + d;
+  loadTasks();
+}
+
+function saveTask(){
+  if(!selectedDate) return alert("Select a date");
+  const input = document.getElementById("taskInput");
+  if(!input.value) return;
+
+  const tasks = JSON.parse(localStorage.getItem(selectedDate)) || [];
+  tasks.push(input.value);
+  localStorage.setItem(selectedDate, JSON.stringify(tasks));
+
+  if(Notification.permission==="granted"){
+    new Notification("📅 StudyHelper Reminder",{
+      body: input.value
+    });
+  }
+
+  input.value="";
+  loadTasks();
+  renderCalendar();
+}
+
+function loadTasks(){
+  const ul = document.getElementById("taskList");
+  ul.innerHTML="";
+  const tasks = JSON.parse(localStorage.getItem(selectedDate)) || [];
+  tasks.forEach(t=>{
+    const li=document.createElement("li");
+    li.textContent=t;
+    ul.appendChild(li);
+  });
+}
+
+renderCalendar();
+</script>
 
 </body>
 </html>

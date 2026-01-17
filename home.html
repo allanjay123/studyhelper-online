@@ -9,26 +9,22 @@
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea, #764ba2);
+      background: linear-gradient(135deg,#667eea,#764ba2);
       min-height: 100vh;
     }
 
     header {
       background: white;
-      padding: 12px 20px;
+      padding: 10px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
-    .nav-buttons button {
-      margin-left: 8px;
-    }
-
     .container {
+      padding: 20px;
       max-width: 900px;
       margin: auto;
-      padding: 20px;
     }
 
     .card {
@@ -45,29 +41,24 @@
     }
 
     button {
-      padding: 8px 14px;
+      padding: 8px 12px;
       border: none;
       border-radius: 6px;
+      cursor: pointer;
       background: #667eea;
       color: white;
-      cursor: pointer;
-    }
-
-    .delete {
-      background: red;
-      float: right;
     }
 
     .note, li {
       background: #f3f3f3;
       padding: 10px;
-      margin-top: 8px;
       border-radius: 6px;
-      list-style: none;
+      margin-top: 8px;
     }
 
-    .calendar-card {
-      text-align: center;
+    .delete {
+      background: red;
+      float: right;
     }
   </style>
 </head>
@@ -75,24 +66,21 @@
 <body>
 
 <header>
-  <strong>📘 StudyHelper</strong>
-  <div class="nav-buttons">
-    <button onclick="location.href='calendar.html'">📅 Calendar</button>
-    <button id="logoutBtn">Logout</button>
-  </div>
+  <strong>StudyHelper</strong>
+  <button id="logoutBtn">Logout</button>
 </header>
 
 <div class="container">
 
   <div class="card">
-    <h3>Welcome</h3>
+    <h3>Welcome 🎉</h3>
     <p id="userEmail"></p>
   </div>
 
   <!-- NOTES -->
   <div class="card">
     <h3>Add Note</h3>
-    <input id="title" placeholder="Title">
+    <input id="title" placeholder="Title" />
     <textarea id="content" placeholder="Your note"></textarea>
     <button id="saveBtn">Save Note</button>
   </div>
@@ -105,7 +93,7 @@
   <!-- TASKS -->
   <div class="card">
     <h3>Tasks</h3>
-    <input id="taskInput" placeholder="New task">
+    <input id="taskInput" placeholder="New task" />
     <button id="addTaskBtn">Add Task</button>
     <ul id="taskList"></ul>
   </div>
@@ -133,12 +121,12 @@
   } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
   const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
+    apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
     authDomain: "studyhelper-app.firebaseapp.com",
     projectId: "studyhelper-app",
     storageBucket: "studyhelper-app.appspot.com",
     messagingSenderId: "390954392930",
-    appId: "1:390954392930:web:xxxxxxxx"
+    appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -146,45 +134,41 @@
   const db = getFirestore(app);
 
   const notesDiv = document.getElementById("notes");
-  const taskList = document.getElementById("taskList");
+  const userEmail = document.getElementById("userEmail");
+
   const taskInput = document.getElementById("taskInput");
+  const addTaskBtn = document.getElementById("addTaskBtn");
+  const taskList = document.getElementById("taskList");
 
   let currentUserUID = null;
 
-  let authChecked = false;
+  // 🔐 AUTH CHECK
+  onAuthStateChanged(auth, user => {
+    if (!user) {
+      window.location.href = "index.html";
+    } else {
+      currentUserUID = user.uid;
+      userEmail.textContent = "Logged in as: " + user.email;
+      loadNotes();
+      loadTasks();
+    }
+  });
 
-onAuthStateChanged(auth, user => {
-  if (authChecked) return;
-  authChecked = true;
-
-  if (!user) {
-    window.location.replace("index.html");
-    return;
-  }
-
-  currentUserUID = user.uid;
-  document.getElementById("userEmail").textContent =
-    "Logged in as: " + user.email;
-
-  loadNotes();
-  loadTasks();
-});
-
-  // NOTES
+  // 📝 NOTES
   function loadNotes() {
-    const q = query(
+    const notesRef = query(
       collection(db, "users", currentUserUID, "notes"),
       orderBy("createdAt", "desc")
     );
 
-    onSnapshot(q, snapshot => {
+    onSnapshot(notesRef, snapshot => {
       notesDiv.innerHTML = "";
-      snapshot.forEach(d => {
-        const n = d.data();
+      snapshot.forEach(docSnap => {
+        const n = docSnap.data();
         notesDiv.innerHTML += `
           <div class="note">
             <strong>${n.title}</strong>
-            <button class="delete" onclick="deleteNote('${d.id}')">Delete</button>
+            <button class="delete" onclick="deleteNote('${docSnap.id}')">Delete</button>
             <p>${n.content}</p>
           </div>
         `;
@@ -192,13 +176,14 @@ onAuthStateChanged(auth, user => {
     });
   }
 
-  window.deleteNote = async id => {
+  window.deleteNote = async (id) => {
     await deleteDoc(doc(db, "users", currentUserUID, "notes", id));
   };
 
-  document.getElementById("saveBtn").onclick = async () => {
-    const title = titleInput.value;
-    const content = contentInput.value;
+  document.getElementById("saveBtn").addEventListener("click", async () => {
+    const title = document.getElementById("title").value;
+    const content = document.getElementById("content").value;
+
     if (!title || !content) return alert("Fill all fields");
 
     await addDoc(collection(db, "users", currentUserUID, "notes"), {
@@ -207,40 +192,44 @@ onAuthStateChanged(auth, user => {
       createdAt: serverTimestamp()
     });
 
-    titleInput.value = "";
-    contentInput.value = "";
-  };
+    document.getElementById("title").value = "";
+    document.getElementById("content").value = "";
+  });
 
-  // TASKS
+  // ✅ TASKS
   function loadTasks() {
-    onSnapshot(collection(db, "users", currentUserUID, "tasks"), snapshot => {
+    const q = collection(db, "users", currentUserUID, "tasks");
+
+    onSnapshot(q, snapshot => {
       taskList.innerHTML = "";
-      snapshot.forEach(d => {
-        const t = d.data();
+      snapshot.forEach(docSnap => {
+        const task = docSnap.data();
         const li = document.createElement("li");
 
         li.innerHTML = `
-          <input type="checkbox" ${t.done ? "checked" : ""}>
-          <span style="text-decoration:${t.done ? "line-through" : "none"}">${t.text}</span>
+          <input type="checkbox" ${task.done ? "checked" : ""}>
+          <span style="text-decoration:${task.done ? "line-through" : "none"}">
+            ${task.text}
+          </span>
           <button class="delete">Delete</button>
         `;
 
-        li.querySelector("input").onchange = e => {
-          updateDoc(doc(db, "users", currentUserUID, "tasks", d.id), {
+        li.querySelector("input").addEventListener("change", e => {
+          updateDoc(doc(db, "users", currentUserUID, "tasks", docSnap.id), {
             done: e.target.checked
           });
-        };
+        });
 
-        li.querySelector("button").onclick = () => {
-          deleteDoc(doc(db, "users", currentUserUID, "tasks", d.id));
-        };
+        li.querySelector("button").addEventListener("click", () => {
+          deleteDoc(doc(db, "users", currentUserUID, "tasks", docSnap.id));
+        });
 
         taskList.appendChild(li);
       });
     });
   }
 
-  document.getElementById("addTaskBtn").onclick = async () => {
+  addTaskBtn.addEventListener("click", async () => {
     if (!taskInput.value) return;
 
     await addDoc(collection(db, "users", currentUserUID, "tasks"), {
@@ -250,13 +239,13 @@ onAuthStateChanged(auth, user => {
     });
 
     taskInput.value = "";
-  };
+  });
 
-  // LOGOUT
-  document.getElementById("logoutBtn").onclick = async () => {
+  // 🚪 LOGOUT
+  document.getElementById("logoutBtn").addEventListener("click", async () => {
     await signOut(auth);
     window.location.href = "index.html";
-  };
+  });
 </script>
 
 </body>

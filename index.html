@@ -12,6 +12,7 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
+      margin: 0;
     }
 
     .card {
@@ -72,26 +73,25 @@
     const dashboard = document.getElementById("dashboard");
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
-
     const emailInput = document.getElementById("email");
     const passwordInput = document.getElementById("password");
     const loginMsg = document.getElementById("loginMsg");
     const userEmail = document.getElementById("userEmail");
 
-    loginBtn.onclick = async () => {
+    loginBtn.addEventListener("click", async () => {
       loginMsg.textContent = "Logging in...";
       try {
         await signInWithEmailAndPassword(
           auth,
-          emailInput.value,
-          passwordInput.value
+          emailInput.value.trim(),
+          passwordInput.value.trim()
         );
-      } catch (e) {
-        loginMsg.textContent = e.message;
+      } catch (err) {
+        loginMsg.textContent = err.message;
       }
-    };
+    });
 
-    onAuthStateChanged(auth, user => {
+    onAuthStateChanged(auth, (user) => {
       if (user) {
         loginCard.classList.add("hidden");
         dashboard.classList.remove("hidden");
@@ -102,7 +102,9 @@
       }
     });
 
-    logoutBtn.onclick = () => signOut(auth);
+    logoutBtn.addEventListener("click", () => {
+      signOut(auth);
+    });
   </script>
 
 </body>

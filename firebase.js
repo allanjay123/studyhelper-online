@@ -2,12 +2,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebas
 import { getAuth } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
+  apiKey: "DITO-ANG-BAGO-AT-EXACT",
   authDomain: "studyhelper-app.firebaseapp.com",
   projectId: "studyhelper-app",
-  storageBucket: "studyhelper-app.firebasestorage.app",
+  storageBucket: "studyhelper-app.appspot.com",
   messagingSenderId: "390954392930",
-  appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
+  appId: "DITO-ANG-BAGONG-APP-ID"
 };
 
 const app = initializeApp(firebaseConfig);

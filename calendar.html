@@ -2,15 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>StudyHelper Calendar</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyHelper - Calendar</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <style>
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: linear-gradient(135deg,#667eea,#764ba2);
+      background: linear-gradient(180deg, #6a5acd, #7b68ee);
     }
+
     header {
       background: white;
       padding: 10px 15px;
@@ -18,20 +19,36 @@
       justify-content: space-between;
       align-items: center;
     }
+
+    header button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      background: #667eea;
+      color: white;
+      cursor: pointer;
+    }
+
     .container {
+      max-width: 900px;
+      margin: auto;
       padding: 15px;
     }
+
     .card {
       background: white;
-      padding: 15px;
       border-radius: 10px;
+      padding: 15px;
       margin-bottom: 15px;
     }
-    input, textarea, button {
+
+    input, button {
+      padding: 8px;
+      margin-top: 6px;
       width: 100%;
-      padding: 10px;
-      margin-top: 8px;
+      box-sizing: border-box;
     }
+
     button {
       background: #667eea;
       color: white;
@@ -39,16 +56,28 @@
       border-radius: 6px;
       cursor: pointer;
     }
-    .event {
-      background: #f3f3f3;
-      padding: 10px;
-      border-radius: 6px;
-      margin-top: 8px;
+
+    #calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      margin-top: 10px;
     }
-    .delete {
-      background: red;
-      color: white;
-      float: right;
+
+    .day {
+      border: 1px solid #ddd;
+      min-height: 90px;
+      padding: 5px;
+      font-size: 12px;
+    }
+
+    .hasEvent {
+      background: #e6edff;
+    }
+
+    .day strong {
+      display: block;
+      margin-bottom: 4px;
     }
   </style>
 </head>
@@ -56,110 +85,148 @@
 <body>
 
 <header>
-  <strong>📅 Calendar</strong>
+  <strong>📅 Study Calendar</strong>
   <button onclick="location.href='home.html'">⬅ Back</button>
 </header>
 
 <div class="container">
 
+  <!-- ADD EVENT -->
   <div class="card">
     <h3>Add Event</h3>
-    <input type="date" id="date">
-    <input type="text" id="title" placeholder="Event title">
-    <textarea id="desc" placeholder="Description"></textarea>
-    <button id="addEventBtn">Save Event</button>
+    <input type="text" id="eventTitle" placeholder="Event title">
+    <input type="date" id="eventDate">
+    <button id="addEventBtn">Add Event</button>
   </div>
 
+  <!-- CALENDAR -->
   <div class="card">
-    <h3>Your Events</h3>
-    <div id="events"></div>
+    <h3 id="monthTitle"></h3>
+    <div id="calendar"></div>
   </div>
 
 </div>
 
+<!-- 🔥 FIREBASE -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
   import {
     getFirestore,
     collection,
     addDoc,
-    onSnapshot,
-    deleteDoc,
-    doc,
-    serverTimestamp,
     query,
-    orderBy
-  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    onSnapshot
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+  // ⚠️ PALITAN GAMIT ANG FIREBASE CONFIG MO
   const firebaseConfig = {
-    apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
-    authDomain: "studyhelper-app.firebaseapp.com",
-    projectId: "studyhelper-app",
-    storageBucket: "studyhelper-app.appspot.com",
-    messagingSenderId: "390954392930",
-    appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "XXXX",
+    appId: "XXXX"
   };
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  const eventsDiv = document.getElementById("events");
-  let uid;
+  const calendarDiv = document.getElementById("calendar");
+  const monthTitle = document.getElementById("monthTitle");
+  const addEventBtn = document.getElementById("addEventBtn");
 
+  let currentUserUID = null;
+
+  // 🔐 AUTH CHECK
   onAuthStateChanged(auth, user => {
     if (!user) {
-      window.location.href = "index.html";
+      location.href = "index.html";
     } else {
-      uid = user.uid;
+      currentUserUID = user.uid;
       loadEvents();
     }
   });
 
+  // ➕ ADD EVENT
+  addEventBtn.addEventListener("click", async () => {
+    const title = document.getElementById("eventTitle").value;
+    const date = document.getElementById("eventDate").value;
+
+    if (!title || !date) return alert("Fill all fields");
+
+    await addDoc(collection(db, "users", currentUserUID, "events"), {
+      title,
+      date
+    });
+
+    document.getElementById("eventTitle").value = "";
+    document.getElementById("eventDate").value = "";
+  });
+
+  // 📆 LOAD EVENTS
   function loadEvents() {
-    const q = query(
-      collection(db, "users", uid, "events"),
-      orderBy("date")
-    );
+    const q = query(collection(db, "users", currentUserUID, "events"));
 
     onSnapshot(q, snap => {
-      eventsDiv.innerHTML = "";
-      snap.forEach(d => {
-        const e = d.data();
-        eventsDiv.innerHTML += `
-          <div class="event">
-            <strong>${e.title}</strong>
-            <button class="delete" onclick="deleteEvent('${d.id}')">Delete</button>
-            <p>${e.date}</p>
-            <small>${e.desc}</small>
-          </div>
-        `;
-      });
+      const events = [];
+      snap.forEach(d => events.push(d.data()));
+      renderCalendar(events);
+      checkReminders(events);
     });
   }
 
-  window.deleteEvent = async (id) => {
-    await deleteDoc(doc(db, "users", uid, "events", id));
-  };
+  // 📅 RENDER CALENDAR
+  function renderCalendar(events) {
+    calendarDiv.innerHTML = "";
 
-  document.getElementById("addEventBtn").addEventListener("click", async () => {
-    const date = date.value;
-    const title = document.getElementById("title").value;
-    const desc = document.getElementById("desc").value;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
 
-    if (!date || !title) return alert("Fill required fields");
+    monthTitle.textContent =
+      now.toLocaleString("default", { month: "long" }) + " " + year;
 
-    await addDoc(collection(db, "users", uid, "events"), {
-      date,
-      title,
-      desc,
-      createdAt: serverTimestamp()
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+      calendarDiv.innerHTML += `<div></div>`;
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const fullDate =
+        year + "-" +
+        String(month + 1).padStart(2, "0") + "-" +
+        String(d).padStart(2, "0");
+
+      const dayEvents = events.filter(e => e.date === fullDate);
+
+      calendarDiv.innerHTML += `
+        <div class="day ${dayEvents.length ? "hasEvent" : ""}">
+          <strong>${d}</strong>
+          ${dayEvents.map(e => `<div>• ${e.title}</div>`).join("")}
+        </div>
+      `;
+    }
+  }
+
+  // 🔔 REMINDER (TODAY)
+  if ("Notification" in window) {
+    Notification.requestPermission();
+  }
+
+  function checkReminders(events) {
+    const today = new Date().toISOString().split("T")[0];
+    events.forEach(e => {
+      if (e.date === today && Notification.permission === "granted") {
+        new Notification("📚 Study Reminder", {
+          body: e.title
+        });
+      }
     });
-
-    document.getElementById("title").value = "";
-    document.getElementById("desc").value = "";
-  });
+  }
 </script>
 
 </body>

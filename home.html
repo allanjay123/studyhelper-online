@@ -1,167 +1,184 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>StudyHelper | Home</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <title>StudyHelper | Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-<style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(135deg,#667eea,#764ba2);
-  color: #333;
-}
-header {
-  background: #fff;
-  padding: 12px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-main {
-  padding: 20px;
-}
-.card {
-  background: white;
-  padding: 15px;
-  border-radius: 10px;
-  margin-bottom: 15px;
-}
-button {
-  padding: 10px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.logout {
-  background: #e74c3c;
-  color: white;
-}
-.add {
-  background: #667eea;
-  color: white;
-  width: 100%;
-}
-input, textarea {
-  width: 100%;
-  padding: 10px;
-  margin: 6px 0;
-}
-</style>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg,#667eea,#764ba2);
+      min-height: 100vh;
+    }
+    header {
+      background: #5a67d8;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .save {
+      background: #667eea;
+      color: white;
+    }
+    .delete {
+      background: #e53e3e;
+      color: white;
+      float: right;
+    }
+    .note {
+      border-bottom: 1px solid #eee;
+      padding: 10px 0;
+    }
+  </style>
 </head>
 
 <body>
 
 <header>
-  <strong>StudyHelper</strong>
-  <button class="logout" id="logoutBtn">Logout</button>
+  <h3>StudyHelper</h3>
+  <button id="logoutBtn">Logout</button>
 </header>
 
-<main>
+<div class="container">
+
   <div class="card">
-    <h3 id="welcome">Welcome</h3>
-    <p id="email"></p>
+    <h3>Welcome 🎉</h3>
+    <p id="userEmail"></p>
   </div>
 
   <div class="card">
     <h3>Add Note</h3>
-    <input id="title" placeholder="Title">
-    <textarea id="content" placeholder="Your note"></textarea>
-    <button class="add" id="saveBtn">Save Note</button>
+    <input type="text" id="title" placeholder="Title">
+    <textarea id="content" rows="4" placeholder="Your note"></textarea>
+    <button class="save" id="saveBtn">Save Note</button>
   </div>
 
   <div class="card">
     <h3>Your Notes</h3>
     <div id="notes"></div>
   </div>
-</main>
+
+</div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import {
-  getAuth,
-  onAuthStateChanged,
-  signOut
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  where,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import {
+    getAuth,
+    onAuthStateChanged,
+    signOut
+  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    query,
+    orderBy,
+    onSnapshot,
+    deleteDoc,
+    doc,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
-  authDomain: "studyhelper-app.firebaseapp.com",
-  projectId: "studyhelper-app",
-  storageBucket: "studyhelper-app.appspot.com",
-  messagingSenderId: "390954392930",
-  appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
+    authDomain: "studyhelper-app.firebaseapp.com",
+    projectId: "studyhelper-app",
+    storageBucket: "studyhelper-app.appspot.com",
+    messagingSenderId: "390954392930",
+    appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
+  };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-let currentUser = null;
+  const notesDiv = document.getElementById("notes");
+  const userEmail = document.getElementById("userEmail");
 
-// AUTH GUARD
-onAuthStateChanged(auth, async user => {
-  if (!user) {
-    window.location.href = "index.html";
-    return;
+  let currentUser;
+
+  onAuthStateChanged(auth, user => {
+    if (!user) {
+      window.location.href = "index.html";
+    } else {
+      currentUser = user;
+      userEmail.textContent = "Logged in as: " + user.email;
+      loadNotes();
+    }
+  });
+
+  function loadNotes() {
+    const notesRef = collection(db, "users", currentUser.uid, "notes");
+    const q = query(notesRef, orderBy("createdAt", "desc"));
+
+    onSnapshot(q, snapshot => {
+      notesDiv.innerHTML = "";
+      snapshot.forEach(docSnap => {
+        const n = docSnap.data();
+        notesDiv.innerHTML += `
+          <div class="note">
+            <strong>${n.title}</strong>
+            <button class="delete" onclick="deleteNote('${docSnap.id}')">Delete</button>
+            <p>${n.content}</p>
+          </div>
+        `;
+      });
+    });
   }
 
-  currentUser = user;
-  document.getElementById("welcome").textContent = "Welcome 🎉";
-  document.getElementById("email").textContent = user.email;
-  loadNotes();
-});
+  window.deleteNote = async (id) => {
+    await deleteDoc(doc(db, "users", currentUser.uid, "notes", id));
+  };
 
-// LOGOUT
-document.getElementById("logoutBtn").onclick = async () => {
-  await signOut(auth);
-  window.location.href = "index.html";
-};
+  document.getElementById("saveBtn").addEventListener("click", async () => {
+    const title = document.getElementById("title").value;
+    const content = document.getElementById("content").value;
 
-// SAVE NOTE
-document.getElementById("saveBtn").onclick = async () => {
-  const title = titleInput.value;
-  const content = contentInput.value;
-  if (!title || !content) return alert("Fill all fields");
+    if (!title || !content) return alert("Fill all fields");
 
-  await addDoc(collection(db, "notes"), {
-    uid: currentUser.uid,
-    title,
-    content,
-    createdAt: serverTimestamp()
+    await addDoc(collection(db, "users", currentUser.uid, "notes"), {
+      title,
+      content,
+      createdAt: serverTimestamp()
+    });
+
+    document.getElementById("title").value = "";
+    document.getElementById("content").value = "";
   });
 
-  titleInput.value = "";
-  contentInput.value = "";
-  loadNotes();
-};
-
-// LOAD NOTES
-async function loadNotes() {
-  notes.innerHTML = "";
-  const q = query(collection(db, "notes"), where("uid", "==", currentUser.uid));
-  const snap = await getDocs(q);
-
-  snap.forEach(doc => {
-    const d = doc.data();
-    notes.innerHTML += `
-      <div class="card">
-        <strong>${d.title}</strong>
-        <p>${d.content}</p>
-      </div>
-    `;
+  document.getElementById("logoutBtn").addEventListener("click", async () => {
+    await signOut(auth);
+    window.location.href = "index.html";
   });
-}
 </script>
 
 </body>

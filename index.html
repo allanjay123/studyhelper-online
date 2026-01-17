@@ -12,122 +12,61 @@ body{
   justify-content:center;
   align-items:center;
   background:linear-gradient(135deg,#667eea,#764ba2);
-  font-family:Arial,sans-serif;
+  font-family:Arial;
 }
-
 .card{
-  background:white;
-  width:330px;
-  padding:25px;
-  border-radius:16px;
-  box-shadow:0 10px 25px rgba(0,0,0,.2);
-  text-align:center;
+  background:#fff;
+  padding:30px;
+  width:320px;
+  border-radius:15px;
+  box-shadow:0 15px 30px rgba(0,0,0,.2);
 }
-
-input{
+input,button{
   width:100%;
   padding:12px;
-  margin-top:10px;
-  border-radius:10px;
+  margin:8px 0;
+  border-radius:8px;
   border:1px solid #ddd;
 }
-
 button{
-  width:100%;
-  padding:12px;
-  margin-top:15px;
-  border:none;
-  border-radius:10px;
   background:#667eea;
-  color:white;
-  font-weight:bold;
-}
-
-.toggle{
-  margin-top:15px;
-  font-size:13px;
+  color:#fff;
+  border:none;
   cursor:pointer;
-  color:#667eea;
 }
-
-#msg{
-  margin-top:10px;
-  font-size:14px;
-}
+button:hover{opacity:.9}
+#home{display:none;text-align:center}
 </style>
 </head>
 
 <body>
 
-<div class="card">
-  <h2 id="title">StudyHelper</h2>
-  <p id="subtitle">Login to your account</p>
+<div class="card" id="auth">
+  <h2>StudyHelper</h2>
 
-  <input type="email" id="email" placeholder="Email">
-  <input type="password" id="password" placeholder="Password">
+  <input id="loginEmail" placeholder="Email">
+  <input id="loginPassword" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
 
-  <button id="actionBtn">Login</button>
+  <hr>
 
-  <div class="toggle" id="toggleText">
-    Don't have an account? Register
-  </div>
+  <input id="regEmail" placeholder="New Email">
+  <input id="regPassword" type="password" placeholder="New Password">
+  <button onclick="register()">Register</button>
 
-  <div id="msg"></div>
+  <p id="message"></p>
 </div>
 
-<script type="module">
-import { auth } from "./firebase.js";
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+<div class="card" id="home">
+  <h2>Welcome 🎉</h2>
+  <p>Features:</p>
+  <ul style="text-align:left">
+    <li>📚 Study Tools</li>
+    <li>📝 Notes</li>
+    <li>⏱️ Pomodoro</li>
+  </ul>
+</div>
 
-const email = document.getElementById("email");
-const password = document.getElementById("password");
-const msg = document.getElementById("msg");
-const actionBtn = document.getElementById("actionBtn");
-const toggleText = document.getElementById("toggleText");
-const subtitle = document.getElementById("subtitle");
-
-let isLogin = true;
-
-toggleText.onclick = () => {
-  isLogin = !isLogin;
-  msg.innerText = "";
-
-  if(isLogin){
-    actionBtn.innerText = "Login";
-    subtitle.innerText = "Login to your account";
-    toggleText.innerText = "Don't have an account? Register";
-  }else{
-    actionBtn.innerText = "Register";
-    subtitle.innerText = "Create a new account";
-    toggleText.innerText = "Already have an account? Login";
-  }
-};
-
-actionBtn.onclick = async () => {
-  msg.innerText = "Please wait...";
-
-  try{
-    if(isLogin){
-      await signInWithEmailAndPassword(auth,email.value,password.value);
-    }else{
-      await createUserWithEmailAndPassword(auth,email.value,password.value);
-      msg.innerText = "Registered successfully ✅";
-    }
-  }catch(e){
-    msg.innerText = e.message;
-  }
-};
-
-onAuthStateChanged(auth,user=>{
-  if(user){
-    window.location.href="home.html";
-  }
-});
-</script>
-
+<script type="module" src="firebase.js"></script>
 </body>
 </html>

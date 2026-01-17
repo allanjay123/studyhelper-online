@@ -1,42 +1,155 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Home</title>
+  <meta charset="UTF-8" />
+  <title>StudyHelper | Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg,#667eea,#764ba2);
+      min-height: 100vh;
+      color: #333;
+    }
+
+    header {
+      background: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,.1);
+    }
+
+    header h2 {
+      margin: 0;
+      color: #667eea;
+    }
+
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      background: #667eea;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    button:hover {
+      opacity: .9;
+    }
+
+    main {
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
+    }
+
+    .welcome {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 6px 15px rgba(0,0,0,.15);
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 15px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 6px 15px rgba(0,0,0,.15);
+    }
+
+    .card h3 {
+      margin-top: 0;
+      color: #667eea;
+    }
+  </style>
 </head>
+
 <body>
 
-<h1>Welcome to StudyHelper 🎉</h1>
-<button onclick="logout()">Logout</button>
+  <header>
+    <h2>StudyHelper</h2>
+    <button id="logoutBtn">Logout</button>
+  </header>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  <main>
+    <div class="welcome">
+      <h3>Welcome 🎉</h3>
+      <p id="userEmail">Loading user...</p>
+    </div>
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
-  authDomain: "studyhelper-app.firebaseapp.com",
-  projectId: "studyhelper-app",
-  storageBucket: "studyhelper-app.firebasestorage.app",
-  messagingSenderId: "390954392930",
-  appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
-};
+    <div class="features">
+      <div class="card">
+        <h3>📚 Study Notes</h3>
+        <p>Create and manage your study notes.</p>
+      </div>
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+      <div class="card">
+        <h3>⏱️ Pomodoro</h3>
+        <p>Stay focused with a study timer.</p>
+      </div>
 
-// 🔐 PROTECT PAGE
-onAuthStateChanged(auth, (user) => {
-  if (!user) {
-    window.location.href = "index.html";
-  }
-});
+      <div class="card">
+        <h3>✅ Tasks</h3>
+        <p>Track your daily study goals.</p>
+      </div>
 
-window.logout = () => {
-  signOut(auth).then(() => {
-    window.location.href = "index.html";
-  });
-};
-</script>
+      <div class="card">
+        <h3>📈 Progress</h3>
+        <p>See your learning progress.</p>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
+      authDomain: "studyhelper-app.firebaseapp.com",
+      projectId: "studyhelper-app",
+      storageBucket: "studyhelper-app.appspot.com",
+      messagingSenderId: "390954392930",
+      appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const userEmail = document.getElementById("userEmail");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    // 🔒 PROTECT PAGE
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "index.html";
+      } else {
+        userEmail.textContent = "Logged in as: " + user.email;
+      }
+    });
+
+    // LOGOUT
+    logoutBtn.onclick = async () => {
+      await signOut(auth);
+      window.location.href = "index.html";
+    };
+  </script>
 
 </body>
 </html>

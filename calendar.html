@@ -6,45 +6,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-  margin:0;
-  font-family:Arial,sans-serif;
-  background:linear-gradient(135deg,#667eea,#764ba2);
-  min-height:100vh;
+/* 🔒 HIDDEN BY DEFAULT (ANTI BLINK) */
+body {
+  display: none;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg,#667eea,#764ba2);
+  min-height: 100vh;
 }
-header{
-  background:#fff;
-  padding:15px 20px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+
+header {
+  background: #fff;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
-.container{
-  max-width:900px;
-  margin:20px auto;
-  background:#fff;
-  padding:20px;
-  border-radius:12px;
+
+.container {
+  max-width: 900px;
+  margin: 20px auto;
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
 }
-table{
-  width:100%;
-  border-collapse:collapse;
+
+table {
+  width: 100%;
+  border-collapse: collapse;
 }
-th,td{
-  border:1px solid #ddd;
-  padding:15px;
-  text-align:center;
-  cursor:pointer;
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 14px;
+  text-align: center;
+  cursor: pointer;
 }
-th{
-  background:#667eea;
-  color:#fff;
+
+th {
+  background: #667eea;
+  color: #fff;
 }
-td:hover{
-  background:#f0f0ff;
+
+td:hover {
+  background: #eef;
 }
-.today{
-  background:#ffd54f !important;
+
+.today {
+  background: #ffd54f !important;
+  font-weight: bold;
 }
 </style>
 </head>
@@ -61,12 +71,12 @@ td:hover{
   <table id="calendar"></table>
 </div>
 
-<!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+/* 🔥 FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_AUTH_DOMAIN",
@@ -77,38 +87,40 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let currentUID = null;
+let uid = null;
 
-// 🔐 AUTH CHECK (ANTI-BLINK FIX)
+/* 🔐 AUTH CHECK — NO BLINK */
 onAuthStateChanged(auth, user => {
   if (!user) {
-    window.location.href = "index.html";
-  } else {
-    currentUID = user.uid;
-    buildCalendar();
-    askNotificationPermission();
+    window.location.replace("index.html");
+    return;
   }
+
+  uid = user.uid;
+  document.body.style.display = "block"; // SHOW PAGE
+  requestNotificationPermission();
+  buildCalendar();
 });
 
-// 🔔 NOTIFICATION PERMISSION
-function askNotificationPermission(){
+/* 🔔 NOTIFICATION */
+function requestNotificationPermission() {
   if ("Notification" in window && Notification.permission !== "granted") {
     Notification.requestPermission();
   }
 }
 
-// 📅 BUILD CALENDAR
-function buildCalendar(){
+/* 📅 CALENDAR */
+function buildCalendar() {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
   const today = now.getDate();
 
+  document.getElementById("monthLabel").innerText =
+    now.toLocaleString("default", { month: "long", year: "numeric" });
+
   const firstDay = new Date(year, month, 1).getDay();
   const lastDate = new Date(year, month + 1, 0).getDate();
-
-  document.getElementById("monthLabel").innerText =
-    now.toLocaleString("default",{month:"long",year:"numeric"});
 
   const table = document.getElementById("calendar");
   table.innerHTML = `
@@ -119,40 +131,42 @@ function buildCalendar(){
   `;
 
   let row = "<tr>";
-  for(let i=0;i<firstDay;i++) row += "<td></td>";
+  for (let i = 0; i < firstDay; i++) row += "<td></td>";
 
-  for(let d=1; d<=lastDate; d++){
-    const fullDate = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+  for (let d = 1; d <= lastDate; d++) {
+    const dateStr =
+      `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+
     const cls = d === today ? "today" : "";
+    row += `<td class="${cls}" data-date="${dateStr}">${d}</td>`;
 
-    row += `<td class="${cls}" data-date="${fullDate}">${d}</td>`;
-    if((firstDay + d) % 7 === 0){
+    if ((firstDay + d) % 7 === 0) {
       table.innerHTML += row + "</tr>";
       row = "<tr>";
     }
   }
   table.innerHTML += row + "</tr>";
 
-  document.querySelectorAll("td[data-date]").forEach(td=>{
-    td.addEventListener("click", ()=> addTask(td.dataset.date));
+  document.querySelectorAll("td[data-date]").forEach(td => {
+    td.addEventListener("click", () => addTask(td.dataset.date));
   });
 }
 
-// ➕ ADD TASK + FIREBASE + NOTIF
-async function addTask(date){
+/* ➕ ADD TASK */
+async function addTask(date) {
   const title = prompt(`Add task for ${date}`);
   if (!title) return;
 
-  await addDoc(collection(db,"users",currentUID,"calendarTasks"),{
+  await addDoc(collection(db, "users", uid, "calendarTasks"), {
     title,
     date,
-    notified:false,
-    createdAt: serverTimestamp()
+    createdAt: serverTimestamp(),
+    notified: false
   });
 
   if (Notification.permission === "granted") {
-    new Notification("📌 Task Added", {
-      body: `${title} on ${date}`
+    new Notification("📅 StudyHelper", {
+      body: `${title} • ${date}`
     });
   }
 }

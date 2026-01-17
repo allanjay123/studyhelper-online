@@ -1,21 +1,135 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>StudyHelper Login</title>
+<meta charset="UTF-8">
+<title>StudyHelper Login</title>
+
+<style>
+body{
+  margin:0;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  font-family:Arial,sans-serif;
+}
+.card{
+  background:#fff;
+  padding:30px;
+  width:320px;
+  border-radius:12px;
+  box-shadow:0 10px 25px rgba(0,0,0,.2);
+  text-align:center;
+}
+input{
+  width:100%;
+  padding:10px;
+  margin:8px 0;
+}
+button{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  background:#667eea;
+  color:#fff;
+  border:none;
+  cursor:pointer;
+}
+button:hover{opacity:.9}
+#msg{margin-top:10px;font-size:14px}
+.toggle{
+  margin-top:10px;
+  font-size:13px;
+  color:#667eea;
+  cursor:pointer;
+}
+</style>
 </head>
 
 <body>
-  <h2>StudyHelper</h2>
 
-  <input id="email" placeholder="Email"><br><br>
-  <input id="password" type="password" placeholder="Password"><br><br>
+<div class="card">
+  <h2 id="title">Login</h2>
 
-  <button onclick="login()">Login</button>
-  <button onclick="register()">Register</button>
+  <input id="email" type="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
 
-  <p id="msg"></p>
+  <button id="actionBtn">Login</button>
 
-  <script type="module" src="firebase.js"></script>
+  <div class="toggle" id="toggle">Create account</div>
+
+  <div id="msg"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+/* 🔥 FIREBASE CONFIG MO */
+const firebaseConfig = {
+  apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
+  authDomain: "studyhelper-app.firebaseapp.com",
+  projectId: "studyhelper-app",
+  storageBucket: "studyhelper-app.firebasestorage.app",
+  messagingSenderId: "390954392930",
+  appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
+};
+
+/* INIT */
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+/* ELEMENTS */
+const email = document.getElementById("email");
+const password = document.getElementById("password");
+const msg = document.getElementById("msg");
+const actionBtn = document.getElementById("actionBtn");
+const toggle = document.getElementById("toggle");
+const title = document.getElementById("title");
+
+let isLogin = true;
+
+/* TOGGLE LOGIN / REGISTER */
+toggle.onclick = () => {
+  isLogin = !isLogin;
+  msg.innerText = "";
+
+  if(isLogin){
+    title.innerText = "Login";
+    actionBtn.innerText = "Login";
+    toggle.innerText = "Create account";
+  }else{
+    title.innerText = "Register";
+    actionBtn.innerText = "Register";
+    toggle.innerText = "Already have an account?";
+  }
+};
+
+/* ACTION */
+actionBtn.onclick = async () => {
+  msg.innerText = "Please wait...";
+
+  try{
+    if(isLogin){
+      await signInWithEmailAndPassword(auth, email.value, password.value);
+      msg.style.color="green";
+      msg.innerText="LOGIN SUCCESS ✅";
+    }else{
+      await createUserWithEmailAndPassword(auth, email.value, password.value);
+      msg.style.color="green";
+      msg.innerText="REGISTER SUCCESS ✅ You can now login";
+    }
+  }catch(e){
+    msg.style.color="red";
+    msg.innerText=e.message;
+  }
+};
+</script>
+
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>StudyHelper | Home</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
     body {
@@ -12,66 +12,61 @@
       background: linear-gradient(135deg,#667eea,#764ba2);
       min-height: 100vh;
     }
+
     header {
-      background: #5a67d8;
-      color: white;
-      padding: 15px 20px;
+      background: white;
+      padding: 10px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
+
     .container {
+      padding: 20px;
       max-width: 900px;
       margin: auto;
-      padding: 20px;
     }
+
     .card {
       background: white;
+      padding: 15px;
       border-radius: 10px;
-      padding: 20px;
       margin-bottom: 20px;
     }
+
     input, textarea {
       width: 100%;
       padding: 10px;
-      margin-top: 8px;
-      margin-bottom: 10px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
+      margin: 6px 0;
     }
+
     button {
-      padding: 10px 15px;
+      padding: 8px 12px;
       border: none;
       border-radius: 6px;
       cursor: pointer;
-    }
-    .save {
       background: #667eea;
       color: white;
     }
-    .delete {
-      background: #e53e3e;
-      color: white;
-      float: right;
+
+    .note, li {
+      background: #f3f3f3;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 8px;
     }
-    .note {
-      border-bottom: 1px solid #eee;
-      padding: 10px 0;
+
+    .delete {
+      background: red;
+      float: right;
     }
   </style>
 </head>
 
 <body>
-<div class="card">
-  <h3>✅ Tasks</h3>
 
-  <input type="text" id="taskInput" placeholder="New task..." />
-  <button id="addTaskBtn">Add Task</button>
-
-  <ul id="taskList"></ul>
-</div>
 <header>
-  <h3>StudyHelper</h3>
+  <strong>StudyHelper</strong>
   <button id="logoutBtn">Logout</button>
 </header>
 
@@ -82,16 +77,25 @@
     <p id="userEmail"></p>
   </div>
 
+  <!-- NOTES -->
   <div class="card">
     <h3>Add Note</h3>
-    <input type="text" id="title" placeholder="Title">
-    <textarea id="content" rows="4" placeholder="Your note"></textarea>
-    <button class="save" id="saveBtn">Save Note</button>
+    <input id="title" placeholder="Title" />
+    <textarea id="content" placeholder="Your note"></textarea>
+    <button id="saveBtn">Save Note</button>
   </div>
 
   <div class="card">
     <h3>Your Notes</h3>
     <div id="notes"></div>
+  </div>
+
+  <!-- TASKS -->
+  <div class="card">
+    <h3>Tasks</h3>
+    <input id="taskInput" placeholder="New task" />
+    <button id="addTaskBtn">Add Task</button>
+    <ul id="taskList"></ul>
   </div>
 
 </div>
@@ -107,23 +111,15 @@
     getFirestore,
     collection,
     addDoc,
-    query,
-    orderBy,
     onSnapshot,
     deleteDoc,
     doc,
-    serverTimestamp
+    updateDoc,
+    serverTimestamp,
+    query,
+    orderBy
   } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  onSnapshot,
-  deleteDoc,
-  doc,
-  updateDoc,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
   const firebaseConfig = {
     apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
     authDomain: "studyhelper-app.firebaseapp.com",
@@ -132,72 +128,7 @@ import {
     messagingSenderId: "390954392930",
     appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
   };
-const taskInput = document.getElementById("taskInput");
-const addTaskBtn = document.getElementById("addTaskBtn");
-const taskList = document.getElementById("taskList");
 
-let currentUserUID = null;
-
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    currentUserUID = user.uid;
-    loadTasks();
-  }
-});
-
-addTaskBtn.addEventListener("click", async () => {
-  if (!taskInput.value) return;
-
-  await addDoc(
-    collection(db, "users", currentUserUID, "tasks"),
-    {
-      text: taskInput.value,
-      done: false,
-      createdAt: serverTimestamp()
-    }
-  );
-
-  taskInput.value = "";
-});
-
-function loadTasks() {
-  const q = collection(db, "users", currentUserUID, "tasks");
-
-  onSnapshot(q, (snapshot) => {
-    taskList.innerHTML = "";
-
-    snapshot.forEach((docSnap) => {
-      const task = docSnap.data();
-      const li = document.createElement("li");
-
-      li.innerHTML = `
-        <input type="checkbox" ${task.done ? "checked" : ""} />
-        <span style="text-decoration:${task.done ? "line-through" : "none"}">
-          ${task.text}
-        </span>
-        <button style="margin-left:10px;color:red;">Delete</button>
-      `;
-
-      const checkbox = li.querySelector("input");
-      const deleteBtn = li.querySelector("button");
-
-      checkbox.addEventListener("change", () => {
-        updateDoc(
-          doc(db, "users", currentUserUID, "tasks", docSnap.id),
-          { done: checkbox.checked }
-        );
-      });
-
-      deleteBtn.addEventListener("click", () => {
-        deleteDoc(
-          doc(db, "users", currentUserUID, "tasks", docSnap.id)
-        );
-      });
-
-      taskList.appendChild(li);
-    });
-  });
-              }
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
@@ -205,23 +136,32 @@ function loadTasks() {
   const notesDiv = document.getElementById("notes");
   const userEmail = document.getElementById("userEmail");
 
-  let currentUser;
+  const taskInput = document.getElementById("taskInput");
+  const addTaskBtn = document.getElementById("addTaskBtn");
+  const taskList = document.getElementById("taskList");
 
+  let currentUserUID = null;
+
+  // 🔐 AUTH CHECK
   onAuthStateChanged(auth, user => {
     if (!user) {
       window.location.href = "index.html";
     } else {
-      currentUser = user;
+      currentUserUID = user.uid;
       userEmail.textContent = "Logged in as: " + user.email;
       loadNotes();
+      loadTasks();
     }
   });
 
+  // 📝 NOTES
   function loadNotes() {
-    const notesRef = collection(db, "users", currentUser.uid, "notes");
-    const q = query(notesRef, orderBy("createdAt", "desc"));
+    const notesRef = query(
+      collection(db, "users", currentUserUID, "notes"),
+      orderBy("createdAt", "desc")
+    );
 
-    onSnapshot(q, snapshot => {
+    onSnapshot(notesRef, snapshot => {
       notesDiv.innerHTML = "";
       snapshot.forEach(docSnap => {
         const n = docSnap.data();
@@ -237,7 +177,7 @@ function loadTasks() {
   }
 
   window.deleteNote = async (id) => {
-    await deleteDoc(doc(db, "users", currentUser.uid, "notes", id));
+    await deleteDoc(doc(db, "users", currentUserUID, "notes", id));
   };
 
   document.getElementById("saveBtn").addEventListener("click", async () => {
@@ -246,7 +186,7 @@ function loadTasks() {
 
     if (!title || !content) return alert("Fill all fields");
 
-    await addDoc(collection(db, "users", currentUser.uid, "notes"), {
+    await addDoc(collection(db, "users", currentUserUID, "notes"), {
       title,
       content,
       createdAt: serverTimestamp()
@@ -256,6 +196,52 @@ function loadTasks() {
     document.getElementById("content").value = "";
   });
 
+  // ✅ TASKS
+  function loadTasks() {
+    const q = collection(db, "users", currentUserUID, "tasks");
+
+    onSnapshot(q, snapshot => {
+      taskList.innerHTML = "";
+      snapshot.forEach(docSnap => {
+        const task = docSnap.data();
+        const li = document.createElement("li");
+
+        li.innerHTML = `
+          <input type="checkbox" ${task.done ? "checked" : ""}>
+          <span style="text-decoration:${task.done ? "line-through" : "none"}">
+            ${task.text}
+          </span>
+          <button class="delete">Delete</button>
+        `;
+
+        li.querySelector("input").addEventListener("change", e => {
+          updateDoc(doc(db, "users", currentUserUID, "tasks", docSnap.id), {
+            done: e.target.checked
+          });
+        });
+
+        li.querySelector("button").addEventListener("click", () => {
+          deleteDoc(doc(db, "users", currentUserUID, "tasks", docSnap.id));
+        });
+
+        taskList.appendChild(li);
+      });
+    });
+  }
+
+  addTaskBtn.addEventListener("click", async () => {
+    if (!taskInput.value) return;
+
+    await addDoc(collection(db, "users", currentUserUID, "tasks"), {
+      text: taskInput.value,
+      done: false,
+      createdAt: serverTimestamp()
+    });
+
+    taskInput.value = "";
+  });
+
+  // 🚪 LOGOUT
   document.getElementById("logoutBtn").addEventListener("click", async () => {
     await signOut(auth);
     window.location.href = "index.html";

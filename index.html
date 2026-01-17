@@ -24,9 +24,6 @@ body{
   text-align:center;
 }
 
-h2{margin-bottom:5px;}
-p{color:#666;font-size:14px;}
-
 input{
   width:100%;
   padding:12px;
@@ -44,7 +41,6 @@ button{
   background:#667eea;
   color:white;
   font-weight:bold;
-  cursor:pointer;
 }
 
 .toggle{
@@ -96,7 +92,6 @@ const subtitle = document.getElementById("subtitle");
 
 let isLogin = true;
 
-// TOGGLE LOGIN / REGISTER
 toggleText.onclick = () => {
   isLogin = !isLogin;
   msg.innerText = "";
@@ -112,26 +107,21 @@ toggleText.onclick = () => {
   }
 };
 
-// LOGIN / REGISTER ACTION
 actionBtn.onclick = async () => {
-  msg.style.color="black";
-  msg.innerText="Please wait...";
+  msg.innerText = "Please wait...";
 
   try{
     if(isLogin){
       await signInWithEmailAndPassword(auth,email.value,password.value);
     }else{
       await createUserWithEmailAndPassword(auth,email.value,password.value);
-      msg.style.color="green";
-      msg.innerText="Account created successfully ✅";
+      msg.innerText = "Registered successfully ✅";
     }
   }catch(e){
-    msg.style.color="red";
-    msg.innerText=e.message;
+    msg.innerText = e.message;
   }
 };
 
-// AUTO REDIRECT PAG LOGGED IN
 onAuthStateChanged(auth,user=>{
   if(user){
     window.location.href="home.html";

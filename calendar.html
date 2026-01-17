@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>StudyHelper | Calendar</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial;
+      background: linear-gradient(135deg,#667eea,#764ba2);
+      margin: 0;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+    }
+    .task {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    .overdue { color: red; }
+  </style>
+</head>
+<body>
+
+<h2 style="color:white;">📅 Calendar Tasks</h2>
+
+<div class="card" id="tasks"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
+  authDomain: "studyhelper-app.firebaseapp.com",
+  projectId: "studyhelper-app",
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const tasksDiv = document.getElementById("tasks");
+
+onAuthStateChanged(auth, user => {
+  if (!user) location.href = "index.html";
+
+  const tasksRef = collection(db, "users", user.uid, "tasks");
+
+  onSnapshot(tasksRef, snap => {
+    tasksDiv.innerHTML = "";
+    snap.forEach(doc => {
+      const t = doc.data();
+      const due = new Date(t.dueDate);
+      const today = new Date();
+
+      tasksDiv.innerHTML += `
+        <div class="task ${due < today && !t.done ? 'overdue' : ''}">
+          <strong>${t.text}</strong><br>
+          Due: ${t.dueDate}
+        </div>
+      `;
+    });
+  });
+});
+</script>
+
+</body>
+</html>

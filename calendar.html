@@ -1,118 +1,165 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>StudyHelper | Calendar</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <title>StudyHelper Calendar</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<style>
-body{
-  margin:0;
-  font-family:Arial,sans-serif;
-  background:linear-gradient(135deg,#667eea,#764ba2);
-}
-header{
-  background:#fff;
-  padding:10px 20px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-.container{
-  max-width:900px;
-  margin:20px auto;
-}
-.card{
-  background:#fff;
-  padding:15px;
-  border-radius:10px;
-  margin-bottom:15px;
-}
-.task{
-  padding:10px;
-  border-bottom:1px solid #eee;
-}
-.overdue{
-  color:red;
-}
-.done{
-  text-decoration:line-through;
-  color:gray;
-}
-button{
-  padding:8px 12px;
-  border:none;
-  border-radius:6px;
-  background:#667eea;
-  color:white;
-  cursor:pointer;
-}
-</style>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg,#667eea,#764ba2);
+    }
+    header {
+      background: white;
+      padding: 10px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .container {
+      padding: 15px;
+    }
+    .card {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+    }
+    input, textarea, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+    }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .event {
+      background: #f3f3f3;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 8px;
+    }
+    .delete {
+      background: red;
+      color: white;
+      float: right;
+    }
+  </style>
 </head>
 
 <body>
 
 <header>
-  <strong>📅 StudyHelper Calendar</strong>
+  <strong>📅 Calendar</strong>
   <button onclick="location.href='home.html'">⬅ Back</button>
 </header>
 
 <div class="container">
+
   <div class="card">
-    <h3>Tasks by Due Date</h3>
-    <div id="taskList"></div>
+    <h3>Add Event</h3>
+    <input type="date" id="date">
+    <input type="text" id="title" placeholder="Event title">
+    <textarea id="desc" placeholder="Description"></textarea>
+    <button id="addEventBtn">Save Event</button>
   </div>
+
+  <div class="card">
+    <h3>Your Events</h3>
+    <div id="events"></div>
+  </div>
+
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import {
-  getFirestore,
-  collection,
-  onSnapshot
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    onSnapshot,
+    deleteDoc,
+    doc,
+    serverTimestamp,
+    query,
+    orderBy
+  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
-  authDomain: "studyhelper-app.firebaseapp.com",
-  projectId: "studyhelper-app"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
+    authDomain: "studyhelper-app.firebaseapp.com",
+    projectId: "studyhelper-app",
+    storageBucket: "studyhelper-app.appspot.com",
+    messagingSenderId: "390954392930",
+    appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
+  };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-const taskList = document.getElementById("taskList");
+  const eventsDiv = document.getElementById("events");
+  let uid;
 
-onAuthStateChanged(auth, user => {
-  if (!user) {
-    window.location.href = "index.html";
-    return;
+  onAuthStateChanged(auth, user => {
+    if (!user) {
+      window.location.href = "index.html";
+    } else {
+      uid = user.uid;
+      loadEvents();
+    }
+  });
+
+  function loadEvents() {
+    const q = query(
+      collection(db, "users", uid, "events"),
+      orderBy("date")
+    );
+
+    onSnapshot(q, snap => {
+      eventsDiv.innerHTML = "";
+      snap.forEach(d => {
+        const e = d.data();
+        eventsDiv.innerHTML += `
+          <div class="event">
+            <strong>${e.title}</strong>
+            <button class="delete" onclick="deleteEvent('${d.id}')">Delete</button>
+            <p>${e.date}</p>
+            <small>${e.desc}</small>
+          </div>
+        `;
+      });
+    });
   }
 
-  const tasksRef = collection(db, "users", user.uid, "tasks");
+  window.deleteEvent = async (id) => {
+    await deleteDoc(doc(db, "users", uid, "events", id));
+  };
 
-  onSnapshot(tasksRef, snap => {
-    taskList.innerHTML = "";
+  document.getElementById("addEventBtn").addEventListener("click", async () => {
+    const date = date.value;
+    const title = document.getElementById("title").value;
+    const desc = document.getElementById("desc").value;
 
-    snap.forEach(doc => {
-      const t = doc.data();
+    if (!date || !title) return alert("Fill required fields");
 
-      if (!t.dueDate) return; // skip tasks without date
-
-      const today = new Date().toISOString().split("T")[0];
-      const overdue = !t.done && t.dueDate < today;
-
-      taskList.innerHTML += `
-        <div class="task ${overdue ? "overdue" : ""} ${t.done ? "done" : ""}">
-          <strong>${t.text}</strong><br>
-          Due: ${t.dueDate}
-        </div>
-      `;
+    await addDoc(collection(db, "users", uid, "events"), {
+      date,
+      title,
+      desc,
+      createdAt: serverTimestamp()
     });
+
+    document.getElementById("title").value = "";
+    document.getElementById("desc").value = "";
   });
-});
 </script>
 
 </body>

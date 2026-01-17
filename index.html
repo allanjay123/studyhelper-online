@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -28,8 +28,6 @@ input {
   width: 100%;
   padding: 12px;
   margin-bottom: 12px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
 }
 
 button {
@@ -38,38 +36,27 @@ button {
   background: #4CAF50;
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 16px;
   cursor: pointer;
-}
-
-button:hover {
-  opacity: 0.9;
 }
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
 <div id="loginCard" class="card hidden">
   <h2>Login</h2>
-
   <input id="email" type="email" placeholder="Email">
   <input id="password" type="password" placeholder="Password">
-
   <button id="loginBtn">Login</button>
   <p id="loginMsg"></p>
 </div>
 
-<!-- DASHBOARD -->
 <div id="dashboard" class="card hidden">
   <h2>Dashboard</h2>
   <p id="userEmail"></p>
   <button id="logoutBtn">Logout</button>
 </div>
 
-<!-- FIREBASE AUTH -->
 <script type="module">
 import { auth } from "./firebase.js";
 import {
@@ -80,17 +67,13 @@ import {
 
 const loginCard = document.getElementById("loginCard");
 const dashboard = document.getElementById("dashboard");
-
 const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
-
 const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
-
 const loginMsg = document.getElementById("loginMsg");
 const userEmail = document.getElementById("userEmail");
 
-/* LOGIN */
 loginBtn.addEventListener("click", async () => {
   loginMsg.textContent = "Logging in...";
   try {
@@ -104,7 +87,6 @@ loginBtn.addEventListener("click", async () => {
   }
 });
 
-/* AUTH STATE */
 onAuthStateChanged(auth, (user) => {
   if (user) {
     loginCard.classList.add("hidden");
@@ -116,7 +98,6 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-/* LOGOUT */
 logoutBtn.addEventListener("click", async () => {
   await signOut(auth);
 });

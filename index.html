@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>StudyHelper Login</title>
+<title>StudyHelper</title>
 
 <style>
 body{
@@ -17,9 +17,9 @@ body{
 
 .card{
   background:white;
-  width:320px;
+  width:330px;
   padding:25px;
-  border-radius:15px;
+  border-radius:16px;
   box-shadow:0 10px 25px rgba(0,0,0,.2);
   text-align:center;
 }
@@ -47,6 +47,13 @@ button{
   cursor:pointer;
 }
 
+.toggle{
+  margin-top:15px;
+  font-size:13px;
+  cursor:pointer;
+  color:#667eea;
+}
+
 #msg{
   margin-top:10px;
   font-size:14px;
@@ -57,12 +64,17 @@ button{
 <body>
 
 <div class="card">
-  <h2>StudyHelper</h2>
-  <p>Login to your account</p>
+  <h2 id="title">StudyHelper</h2>
+  <p id="subtitle">Login to your account</p>
 
   <input type="email" id="email" placeholder="Email">
   <input type="password" id="password" placeholder="Password">
-  <button id="loginBtn">Login</button>
+
+  <button id="actionBtn">Login</button>
+
+  <div class="toggle" id="toggleText">
+    Don't have an account? Register
+  </div>
 
   <div id="msg"></div>
 </div>
@@ -71,18 +83,48 @@ button{
 import { auth } from "./firebase.js";
 import {
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
 const email = document.getElementById("email");
 const password = document.getElementById("password");
 const msg = document.getElementById("msg");
+const actionBtn = document.getElementById("actionBtn");
+const toggleText = document.getElementById("toggleText");
+const subtitle = document.getElementById("subtitle");
 
-document.getElementById("loginBtn").onclick = async () => {
+let isLogin = true;
+
+// TOGGLE LOGIN / REGISTER
+toggleText.onclick = () => {
+  isLogin = !isLogin;
+  msg.innerText = "";
+
+  if(isLogin){
+    actionBtn.innerText = "Login";
+    subtitle.innerText = "Login to your account";
+    toggleText.innerText = "Don't have an account? Register";
+  }else{
+    actionBtn.innerText = "Register";
+    subtitle.innerText = "Create a new account";
+    toggleText.innerText = "Already have an account? Login";
+  }
+};
+
+// LOGIN / REGISTER ACTION
+actionBtn.onclick = async () => {
   msg.style.color="black";
-  msg.innerText="Logging in...";
+  msg.innerText="Please wait...";
+
   try{
-    await signInWithEmailAndPassword(auth,email.value,password.value);
+    if(isLogin){
+      await signInWithEmailAndPassword(auth,email.value,password.value);
+    }else{
+      await createUserWithEmailAndPassword(auth,email.value,password.value);
+      msg.style.color="green";
+      msg.innerText="Account created successfully ✅";
+    }
   }catch(e){
     msg.style.color="red";
     msg.innerText=e.message;

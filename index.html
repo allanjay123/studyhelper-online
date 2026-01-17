@@ -1,111 +1,41 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>StudyHelper</title>
+<script type="module">
+  import { auth } from "./firebase.js";
+  import {
+    signInWithEmailAndPassword,
+    onAuthStateChanged,
+    signOut
+  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
+  const loginBtn = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const loginMsg = document.getElementById("loginMsg");
+
+  loginBtn.onclick = async () => {
+    loginMsg.textContent = "Logging in...";
+    try {
+      await signInWithEmailAndPassword(
+        auth,
+        emailInput.value,
+        passwordInput.value
+      );
+    } catch (e) {
+      loginMsg.textContent = e.message;
     }
+  };
 
-    .card {
-      background: white;
-      padding: 20px;
-      width: 100%;
-      max-width: 350px;
-      border-radius: 10px;
-      box-shadow: 0 5px 15px rgba(0,0,0,.1);
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      document.getElementById("loginCard").classList.add("hidden");
+      document.getElementById("dashboard").classList.remove("hidden");
+      document.getElementById("userEmail").textContent = user.email;
+    } else {
+      document.getElementById("dashboard").classList.add("hidden");
+      document.getElementById("loginCard").classList.remove("hidden");
     }
+  });
 
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-    }
-
-    button {
-      background: #4CAF50;
-      border: none;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .hidden {
-      display: none;
-    }
-  </style>
-</head>
-<body>
-
-  <!-- LOGIN -->
-  <div id="loginCard" class="card">
-    <h2>Login</h2>
-    <input id="email" type="email" placeholder="Email">
-    <input id="password" type="password" placeholder="Password">
-    <button id="loginBtn">Login</button>
-    <p id="loginMsg"></p>
-  </div>
-
-  <!-- DASHBOARD -->
-  <div id="dashboard" class="card hidden">
-    <h2>Dashboard</h2>
-    <p id="userEmail"></p>
-    <button id="logoutBtn">Logout</button>
-  </div>
-
-  <script type="module">
-    import { auth } from "./firebase.js";
-    import {
-      signInWithEmailAndPassword,
-      onAuthStateChanged,
-      signOut
-    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-
-    const loginCard = document.getElementById("loginCard");
-    const dashboard = document.getElementById("dashboard");
-    const loginBtn = document.getElementById("loginBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const emailInput = document.getElementById("email");
-    const passwordInput = document.getElementById("password");
-    const loginMsg = document.getElementById("loginMsg");
-    const userEmail = document.getElementById("userEmail");
-
-    loginBtn.addEventListener("click", async () => {
-      loginMsg.textContent = "Logging in...";
-      try {
-        await signInWithEmailAndPassword(
-          auth,
-          emailInput.value.trim(),
-          passwordInput.value.trim()
-        );
-      } catch (err) {
-        loginMsg.textContent = err.message;
-      }
-    });
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        loginCard.classList.add("hidden");
-        dashboard.classList.remove("hidden");
-        userEmail.textContent = "Logged in as: " + user.email;
-      } else {
-        dashboard.classList.add("hidden");
-        loginCard.classList.remove("hidden");
-      }
-    });
-
-    logoutBtn.addEventListener("click", () => {
-      signOut(auth);
-    });
-  </script>
-
-</body>
-</html>
+  logoutBtn.onclick = () => signOut(auth);
+</script>

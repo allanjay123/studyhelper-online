@@ -32,7 +32,7 @@ header{
 .card{
   background:#fff;
   padding:15px;
-  border-radius:10px;
+  border-radius:12px;
   margin-bottom:15px;
 }
 input,textarea{
@@ -49,15 +49,15 @@ button{
   cursor:pointer;
 }
 button.small{
-  padding:5px 8px;
+  padding:4px 7px;
   font-size:12px;
-  background:#f44336;
 }
 .progress{
-  background:#ddd;
+  background:#e0e0e0;
   height:8px;
-  border-radius:5px;
+  border-radius:6px;
   overflow:hidden;
+  margin-top:5px;
 }
 .progress div{
   background:#4caf50;
@@ -67,10 +67,14 @@ button.small{
   display:flex;
   align-items:center;
   gap:8px;
+  padding:6px 0;
 }
 .lesson.done{
+  opacity:.6;
   text-decoration:line-through;
-  color:#777;
+}
+.lesson span{
+  font-size:14px;
 }
 </style>
 </head>
@@ -87,53 +91,58 @@ button.small{
 </header>
 
 <div class="container">
-<div class="grid">
+  <div class="grid">
 
-<!-- LEFT -->
-<div>
+    <!-- LEFT -->
+    <div>
 
-<div class="card">
-<h3>Add Note</h3>
-<input id="noteTitle" placeholder="Title">
-<textarea id="noteBody" placeholder="Your note"></textarea>
-<button id="saveNote">Save Note</button>
-</div>
+      <!-- NOTES -->
+      <div class="card">
+        <h3>Add Note</h3>
+        <input id="noteTitle" placeholder="Title">
+        <textarea id="noteBody" placeholder="Your note"></textarea>
+        <button id="saveNote">Save Note</button>
+      </div>
 
-<div class="card">
-<h3>Your Notes</h3>
-<div id="notesList"></div>
-</div>
+      <div class="card">
+        <h3>Your Notes</h3>
+        <div id="notesList"></div>
+      </div>
 
-<div class="card">
-<h3>Tasks</h3>
-<input id="taskInput" placeholder="New task">
-<button id="addTask">Add Task</button>
-<div id="tasksList"></div>
-</div>
+      <!-- TASKS -->
+      <div class="card">
+        <h3>Tasks</h3>
+        <input id="taskInput" placeholder="New task">
+        <button id="addTask">Add Task</button>
+        <div id="tasksList"></div>
+      </div>
 
-<div class="card">
-<h3>Lessons</h3>
-<div id="lessonsList"></div>
-</div>
+    </div>
 
-</div>
+    <!-- RIGHT -->
+    <div>
 
-<!-- RIGHT -->
-<div>
+      <!-- SUBJECTS -->
+      <div class="card">
+        <h3>📊 Subjects Mastery</h3>
+        <div id="subjectsMastery"></div>
+      </div>
 
-<div class="card">
-<h3>📊 Subjects Mastery</h3>
-<div id="subjectsMastery"></div>
-</div>
+      <!-- TASK PROGRESS -->
+      <div class="card">
+        <h3>✅ Task Progress</h3>
+        <div id="tasksMastery"></div>
+      </div>
 
-<div class="card">
-<h3>✅ Tasks Progress</h3>
-<div id="tasksMastery"></div>
-</div>
+      <!-- LESSONS -->
+      <div class="card">
+        <h3>📖 Lessons</h3>
+        <div id="lessonsList"></div>
+      </div>
 
-</div>
+    </div>
 
-</div>
+  </div>
 </div>
 
 <script type="module">
@@ -158,22 +167,26 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-let uid = null;
+
+let uid=null;
 
 onAuthStateChanged(auth,user=>{
-  if(!user) location.href="index.html";
-  uid=user.uid;
-  loadNotes();
-  loadTasks();
-  loadSubjectsMastery();
-  loadLessons();
+  if(!user){
+    location.href="index.html";
+  }else{
+    uid=user.uid;
+    loadNotes();
+    loadTasks();
+    loadSubjects();
+    loadLessons();
+  }
 });
 
 logout.onclick=()=>signOut(auth);
 
 /* NOTES */
 saveNote.onclick=async()=>{
-  if(!noteTitle.value||!noteBody.value) return;
+  if(!noteTitle.value||!noteBody.value)return;
   await addDoc(collection(db,"users",uid,"notes"),{
     title:noteTitle.value,
     body:noteBody.value
@@ -187,21 +200,20 @@ function loadNotes(){
     notesList.innerHTML="";
     snap.forEach(d=>{
       const n=d.data();
-      const div=document.createElement("div");
-      div.innerHTML=`
-        <strong>${n.title}</strong>
-        <button class="small">Delete</button>
-        <p>${n.body}</p>
+      notesList.innerHTML+=`
+        <div>
+          <strong>${n.title}</strong>
+          <button class="small" onclick="deleteDoc(doc(db,'users','${uid}','notes','${d.id}'))">Delete</button>
+          <p>${n.body}</p>
+        </div>
       `;
-      div.querySelector("button").onclick=()=>deleteDoc(doc(db,"users",uid,"notes",d.id));
-      notesList.appendChild(div);
     });
   });
 }
 
-/* TASKS */
+/* TASKS + PROGRESS FIX */
 addTask.onclick=async()=>{
-  if(!taskInput.value) return;
+  if(!taskInput.value)return;
   await addDoc(collection(db,"users",uid,"tasks"),{
     text:taskInput.value,
     done:false
@@ -212,26 +224,22 @@ addTask.onclick=async()=>{
 function loadTasks(){
   onSnapshot(collection(db,"users",uid,"tasks"),snap=>{
     tasksList.innerHTML="";
-    let done=0;
+    let done=0,total=snap.size;
+
     snap.forEach(d=>{
       const t=d.data();
       if(t.done) done++;
-      const row=document.createElement("div");
-      row.innerHTML=`
-        <input type="checkbox" ${t.done?"checked":""}>
-        ${t.text}
-        <button class="small">X</button>
+      tasksList.innerHTML+=`
+        <div>
+          <input type="checkbox" ${t.done?"checked":""}
+            onchange="updateDoc(doc(db,'users','${uid}','tasks','${d.id}'),{done:this.checked})">
+          ${t.text}
+          <button class="small" onclick="deleteDoc(doc(db,'users','${uid}','tasks','${d.id}'))">✕</button>
+        </div>
       `;
-      row.querySelector("input").onchange=e=>{
-        updateDoc(doc(db,"users",uid,"tasks",d.id),{done:e.target.checked});
-      };
-      row.querySelector("button").onclick=()=>{
-        deleteDoc(doc(db,"users",uid,"tasks",d.id));
-      };
-      tasksList.appendChild(row);
     });
-    let total=snap.size;
-    let percent=total?Math.round(done/total*100):0;
+
+    let percent= total?Math.round(done/total*100):0;
     tasksMastery.innerHTML=`
       ${done}/${total} completed (${percent}%)
       <div class="progress"><div style="width:${percent}%"></div></div>
@@ -239,8 +247,8 @@ function loadTasks(){
   });
 }
 
-/* SUBJECTS MASTERY */
-function loadSubjectsMastery(){
+/* SUBJECT MASTERY */
+function loadSubjects(){
   onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
     subjectsMastery.innerHTML="";
     snap.forEach(s=>{
@@ -248,7 +256,7 @@ function loadSubjectsMastery(){
       const name=s.data().name;
       onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
         let done=0;
-        ls.forEach(l=>{if(l.data().completed) done++;});
+        ls.forEach(l=>{if(l.data().completed)done++;});
         let total=ls.size;
         let percent=total?Math.round(done/total*100):0;
         subjectsMastery.innerHTML+=`
@@ -262,28 +270,23 @@ function loadSubjectsMastery(){
   });
 }
 
-/* LESSONS QUICK */
+/* LESSONS AESTHETIC */
 function loadLessons(){
   onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
     lessonsList.innerHTML="";
     snap.forEach(s=>{
       const sid=s.id;
-      const sname=s.data().name;
+      const subj=s.data().name;
       onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
         ls.forEach(l=>{
           const d=l.data();
-          const row=document.createElement("div");
-          row.className="lesson"+(d.completed?" done":"");
-          row.innerHTML=`
-            <input type="checkbox" ${d.completed?"checked":""}>
-            ${sname}: ${d.title}
+          lessonsList.innerHTML+=`
+            <div class="lesson ${d.completed?'done':''}">
+              <input type="checkbox" ${d.completed?'checked':''}
+                onchange="updateDoc(doc(db,'users','${uid}','subjects','${sid}','lessons','${l.id}'),{completed:this.checked})">
+              <span><strong>${subj}</strong>: ${d.title}</span>
+            </div>
           `;
-          row.querySelector("input").onchange=e=>{
-            updateDoc(doc(db,"users",uid,"subjects",sid,"lessons",l.id),{
-              completed:e.target.checked
-            });
-          };
-          lessonsList.appendChild(row);
         });
       });
     });

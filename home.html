@@ -32,7 +32,7 @@ header{
 .card{
   background:#fff;
   padding:15px;
-  border-radius:10px;
+  border-radius:12px;
   margin-bottom:15px;
 }
 input,textarea{
@@ -48,10 +48,9 @@ button{
   color:white;
   cursor:pointer;
 }
-button.small{
-  padding:5px 8px;
-  font-size:12px;
+button.delete{
   background:#f44336;
+  font-size:12px;
   margin-left:6px;
 }
 .progress{
@@ -59,17 +58,19 @@ button.small{
   height:8px;
   border-radius:5px;
   overflow:hidden;
+  margin-top:5px;
 }
 .progress div{
   background:#4caf50;
   height:100%;
 }
-.lesson{
+.lesson,.task{
   display:flex;
   align-items:center;
   gap:8px;
+  margin-bottom:6px;
 }
-.lesson.done{
+.lesson.done,.task.done{
   text-decoration:line-through;
   color:#777;
 }
@@ -82,7 +83,6 @@ button.small{
   <strong>StudyHelper</strong>
   <div>
     <button onclick="location.href='subjects.html'">📚 Subjects</button>
-    <button onclick="location.href='calendar.html'">📅 Calendar</button>
     <button id="logout">Logout</button>
   </div>
 </header>
@@ -112,24 +112,24 @@ button.small{
 <div id="tasksList"></div>
 </div>
 
-<div class="card">
-<h3>Lessons</h3>
-<div id="lessonsList"></div>
-</div>
-
 </div>
 
 <!-- RIGHT -->
 <div>
 
 <div class="card">
-<h3>📊 Subjects Mastery</h3>
-<div id="subjectsMastery"></div>
+<h3>✅ Tasks Progress</h3>
+<div id="tasksMastery"></div>
 </div>
 
 <div class="card">
-<h3>✅ Tasks Progress</h3>
-<div id="tasksMastery"></div>
+<h3>📘 Lessons</h3>
+<div id="lessonsList"></div>
+</div>
+
+<div class="card">
+<h3>📊 Subjects</h3>
+<div id="subjectsMastery"></div>
 </div>
 
 </div>
@@ -147,10 +147,10 @@ import {
   onSnapshot,
   deleteDoc,
   doc,
-  updateDoc
+  updateDoc,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-/* FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
   authDomain: "studyhelper-app.firebaseapp.com",
@@ -160,70 +160,58 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-let uid = null;
+let uid;
 
 /* AUTH */
 onAuthStateChanged(auth,user=>{
   if(!user) location.href="index.html";
-  uid = user.uid;
-  loadNotes();
-  loadTasks();
-  loadSubjectsMastery();
-  loadLessons();
+  uid=user.uid;
+  notes();
+  tasks();
+  subjects();
 });
 
-logout.onclick = ()=>signOut(auth);
+logout.onclick=()=>signOut(auth);
 
 /* NOTES */
-saveNote.onclick = async ()=>{
-  if(!noteTitle.value || !noteBody.value) return;
-  await addDoc(collection(db,"users",uid,"notes"),{
-    title:noteTitle.value,
-    body:noteBody.value
-  });
-  noteTitle.value="";
-  noteBody.value="";
-};
+saveNote.onclick=()=>addDoc(collection(db,"users",uid,"notes"),{
+  title:noteTitle.value,
+  body:noteBody.value
+});
 
-function loadNotes(){
-  onSnapshot(collection(db,"users",uid,"notes"), snap=>{
+function notes(){
+  onSnapshot(collection(db,"users",uid,"notes"),snap=>{
     notesList.innerHTML="";
     snap.forEach(d=>{
       const div=document.createElement("div");
       div.innerHTML=`<strong>${d.data().title}</strong><p>${d.data().body}</p>`;
-
       const del=document.createElement("button");
       del.textContent="Delete";
-      del.className="small";
+      del.className="delete";
       del.onclick=()=>deleteDoc(doc(db,"users",uid,"notes",d.id));
-
       div.appendChild(del);
       notesList.appendChild(div);
     });
   });
 }
 
-/* TASKS + PROGRESS */
-addTask.onclick = async ()=>{
-  if(!taskInput.value) return;
-  await addDoc(collection(db,"users",uid,"tasks"),{
-    text:taskInput.value,
-    done:false
-  });
-  taskInput.value="";
-};
+/* TASKS + FIXED PROGRESS */
+addTask.onclick=()=>addDoc(collection(db,"users",uid,"tasks"),{
+  text:taskInput.value,
+  done:false
+});
 
-function loadTasks(){
-  onSnapshot(collection(db,"users",uid,"tasks"), snap=>{
+function tasks(){
+  onSnapshot(collection(db,"users",uid,"tasks"),snap=>{
     tasksList.innerHTML="";
-    let done=0;
-    let total=snap.size;
+    let done=0,total=snap.size;
 
     snap.forEach(d=>{
       const t=d.data();
       if(t.done) done++;
 
       const row=document.createElement("div");
+      row.className="task"+(t.done?" done":"");
 
       const cb=document.createElement("input");
       cb.type="checkbox";
@@ -232,14 +220,14 @@ function loadTasks(){
 
       const del=document.createElement("button");
       del.textContent="X";
-      del.className="small";
+      del.className="delete";
       del.onclick=()=>deleteDoc(doc(db,"users",uid,"tasks",d.id));
 
-      row.append(cb," ",t.text,del);
+      row.append(cb,t.text,del);
       tasksList.appendChild(row);
     });
 
-    const percent = total?Math.round((done/total)*100):0;
+    const percent = total ? Math.round((done/total)*100) : 0;
     tasksMastery.innerHTML=`
       <strong>${done}/${total} completed (${percent}%)</strong>
       <div class="progress"><div style="width:${percent}%"></div></div>
@@ -247,42 +235,43 @@ function loadTasks(){
   });
 }
 
-/* SUBJECTS MASTERY */
-function loadSubjectsMastery(){
-  onSnapshot(collection(db,"users",uid,"subjects"), snap=>{
+/* SUBJECTS + LESSONS + DELETE */
+function subjects(){
+  onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
     subjectsMastery.innerHTML="";
-    snap.forEach(s=>{
-      onSnapshot(collection(db,"users",uid,"subjects",s.id,"lessons"), ls=>{
-        let done=0;
-        ls.forEach(l=>{ if(l.data().completed) done++; });
-        const total=ls.size;
-        const percent=total?Math.round(done/total*100):0;
-        subjectsMastery.innerHTML+=`
-          <div>
-            <strong>${s.data().name}</strong> – ${percent}%
-            <div class="progress"><div style="width:${percent}%"></div></div>
-          </div>
-        `;
-      });
-    });
-  });
-}
-
-/* LESSONS */
-function loadLessons(){
-  onSnapshot(collection(db,"users",uid,"subjects"), snap=>{
     lessonsList.innerHTML="";
+
     snap.forEach(s=>{
-      onSnapshot(collection(db,"users",uid,"subjects",s.id,"lessons"), ls=>{
+      const sDiv=document.createElement("div");
+      sDiv.innerHTML=`<strong>${s.data().name}</strong>`;
+      const delS=document.createElement("button");
+      delS.textContent="Delete Subject";
+      delS.className="delete";
+      delS.onclick=async()=>{
+        const ls=await getDocs(collection(db,"users",uid,"subjects",s.id,"lessons"));
+        ls.forEach(l=>deleteDoc(l.ref));
+        deleteDoc(doc(db,"users",uid,"subjects",s.id));
+      };
+      sDiv.appendChild(delS);
+      subjectsMastery.appendChild(sDiv);
+
+      onSnapshot(collection(db,"users",uid,"subjects",s.id,"lessons"),ls=>{
         ls.forEach(l=>{
           const d=l.data();
           const row=document.createElement("div");
           row.className="lesson"+(d.completed?" done":"");
+
           const cb=document.createElement("input");
           cb.type="checkbox";
           cb.checked=d.completed;
           cb.onchange=()=>updateDoc(doc(db,"users",uid,"subjects",s.id,"lessons",l.id),{completed:cb.checked});
-          row.append(cb,`${s.data().name}: ${d.title}`);
+
+          const del=document.createElement("button");
+          del.textContent="X";
+          del.className="delete";
+          del.onclick=()=>deleteDoc(doc(db,"users",uid,"subjects",s.id,"lessons",l.id));
+
+          row.append(cb,`${s.data().name}: ${d.title}`,del);
           lessonsList.appendChild(row);
         });
       });

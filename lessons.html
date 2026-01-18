@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lessons</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+}
+header{
+  background:#fff;
+  padding:10px 20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.container{
+  max-width:700px;
+  margin:20px auto;
+  padding:20px;
+}
+.card{
+  background:#fff;
+  padding:15px;
+  border-radius:10px;
+  margin-bottom:12px;
+}
+input{
+  width:100%;
+  padding:10px;
+  margin-bottom:10px;
+}
+button{
+  padding:8px 12px;
+  border:none;
+  border-radius:6px;
+  background:#4caf50;
+  color:white;
+  cursor:pointer;
+}
+.lesson{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.done{
+  text-decoration:line-through;
+  opacity:0.6;
+}
+small{
+  opacity:0.6;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <strong id="title">📘 Lessons</strong>
+  <button onclick="history.back()">⬅ Back</button>
+</header>
+
+<div class="container">
+
+  <!-- ADD LESSON -->
+  <div class="card">
+    <h3>Add Lesson</h3>
+    <input id="lessonName" placeholder="Lesson title">
+    <button id="addLessonBtn">➕ Add Lesson</button>
+  </div>
+
+  <!-- LIST -->
+  <div id="lessonList"></div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { 
+  getFirestore,
+  doc,
+  collection,
+  addDoc,
+  onSnapshot,
+  updateDoc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
+  authDomain: "studyhelper-app.firebaseapp.com",
+  projectId: "studyhelper-app"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const params = new URLSearchParams(location.search);
+const subjectId = params.get("subjectId");
+
+if(!subjectId){
+  alert("No subject selected");
+  history.back();
+}
+
+let uid = null;
+const lessonList = document.getElementById("lessonList");
+const lessonName = document.getElementById("lessonName");
+
+onAuthStateChanged(auth, async user=>{
+  if(!user){
+    location.href="index.html";
+  }else{
+    uid = user.uid;
+    loadSubject();
+    loadLessons();
+  }
+});
+
+async function loadSubject(){
+  const ref = doc(db,"users",uid,"subjects",subjectId);
+  const snap = await getDoc(ref);
+  if(snap.exists()){
+    document.getElementById("title").textContent =
+      "📘 " + snap.data().name + " Lessons";
+  }
+}
+
+function loadLessons(){
+  const ref = collection(db,"users",uid,"subjects",subjectId,"lessons");
+
+  onSnapshot(ref, snap=>{
+    lessonList.innerHTML="";
+
+    if(snap.empty){
+      lessonList.innerHTML="<div class='card'>No lessons yet</div>";
+      updateMastery(0,0);
+      return;
+    }
+
+    let total = 0;
+    let done = 0;
+
+    snap.forEach(docSnap=>{
+      const l = docSnap.data();
+      total++;
+      if(l.completed) done++;
+
+      lessonList.innerHTML += `
+        <div class="card lesson ${l.completed ? "done" : ""}">
+          <span>${l.title}</span>
+          <input type="checkbox"
+            ${l.completed ? "checked" : ""}
+            onchange="toggleDone('${docSnap.id}',${l.completed})">
+        </div>
+      `;
+    });
+
+    updateMastery(total, done);
+  });
+}
+
+document.getElementById("addLessonBtn").onclick = async ()=>{
+  const title = lessonName.value.trim();
+  if(!title){
+    alert("Lesson title required");
+    return;
+  }
+
+  await addDoc(
+    collection(db,"users",uid,"subjects",subjectId,"lessons"),
+    { title, completed:false }
+  );
+
+  lessonName.value="";
+};
+
+window.toggleDone = async (lessonId,current)=>{
+  const ref = doc(
+    db,
+    "users",uid,
+    "subjects",subjectId,
+    "lessons",lessonId
+  );
+
+  await updateDoc(ref,{
+    completed: !current
+  });
+};
+
+async function updateMastery(total, done){
+  const subjectRef = doc(db,"users",uid,"subjects",subjectId);
+  await updateDoc(subjectRef,{
+    totalLessons: total,
+    completedLessons: done
+  });
+}
+</script>
+
+</body>
+</html>

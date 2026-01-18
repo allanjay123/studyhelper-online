@@ -2,92 +2,69 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Subjects</title>
+<title>StudyHelper | Subjects Mastery</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{
   margin:0;
-  font-family:Arial, sans-serif;
-  background:linear-gradient(135deg,#667eea,#764ba2);
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg,#667eea,#764ba2);
   min-height:100vh;
-  color:#fff;
 }
 
 header{
+  padding:15px;
+  background:#6b73ff;
+  color:white;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding:15px;
-  background:rgba(255,255,255,0.1);
 }
 
-button{
-  border:none;
-  padding:8px 14px;
-  border-radius:6px;
-  cursor:pointer;
-}
-
-.add-btn{
+header button{
   background:#4CAF50;
-  color:#fff;
+  border:none;
+  color:white;
+  padding:8px 15px;
+  border-radius:5px;
+  cursor:pointer;
 }
 
 .container{
   padding:15px;
 }
 
-.subject{
-  background:#fff;
-  color:#333;
+.subject-card{
+  background:white;
   padding:12px;
   border-radius:8px;
-  margin-bottom:10px;
+  margin-bottom:12px;
+}
+
+.subject-title{
   font-weight:bold;
+  margin-bottom:6px;
 }
 
-.empty{
-  background:#fff;
-  color:#666;
-  padding:12px;
-  border-radius:8px;
-  text-align:center;
-}
-
-/* Modal */
-.modal{
-  position:fixed;
-  top:0;
-  left:0;
+.progress-bar{
   width:100%;
+  height:10px;
+  background:#ddd;
+  border-radius:5px;
+  overflow:hidden;
+}
+
+.progress{
   height:100%;
-  background:rgba(0,0,0,0.4);
-  display:none;
-  align-items:center;
-  justify-content:center;
+  background:#4CAF50;
+  width:0%;
 }
 
-.modal-content{
-  background:#fff;
-  color:#333;
-  padding:20px;
-  width:90%;
-  max-width:320px;
-  border-radius:10px;
-}
-
-.modal-content input{
-  width:100%;
-  padding:8px;
-  margin-top:10px;
-}
-
-.save-btn{
-  background:#667eea;
-  color:#fff;
-  width:100%;
-  margin-top:15px;
+.percent{
+  font-size:12px;
+  margin-top:5px;
+  text-align:right;
 }
 </style>
 </head>
@@ -95,73 +72,51 @@ button{
 <body>
 
 <header>
-  <h3>📘 Subjects</h3>
-  <button class="add-btn" onclick="openModal()">＋ Add</button>
+  <div>📘 Subjects Mastery</div>
+  <button onclick="addSubject()">+ Add</button>
 </header>
 
-<div class="container" id="subjectList">
-  <!-- subjects here -->
-</div>
-
-<!-- MODAL -->
-<div class="modal" id="modal">
-  <div class="modal-content">
-    <h3>Add Subject</h3>
-    <input id="subjectName" placeholder="e.g. Math">
-    <button class="save-btn" onclick="addSubject()">Save</button>
-  </div>
-</div>
+<div class="container" id="subjectList"></div>
 
 <script>
-let subjects = JSON.parse(localStorage.getItem("subjects")) || [];
+let subjects = JSON.parse(localStorage.getItem("subjects")) || [
+  {name:"Math", mastery:40},
+  {name:"English", mastery:70},
+  {name:"Science", mastery:20}
+];
 
-function saveSubjects(){
-  localStorage.setItem("subjects", JSON.stringify(subjects));
-}
-
-function loadSubjects(){
+function renderSubjects(){
   const list = document.getElementById("subjectList");
   list.innerHTML = "";
 
-  if(subjects.length === 0){
-    list.innerHTML = `<div class="empty">No subjects yet</div>`;
-    return;
-  }
-
   subjects.forEach(sub=>{
-    const div = document.createElement("div");
-    div.className = "subject";
-    div.textContent = sub.name;
-    list.appendChild(div);
+    list.innerHTML += `
+      <div class="subject-card">
+        <div class="subject-title">${sub.name}</div>
+        <div class="progress-bar">
+          <div class="progress" style="width:${sub.mastery}%"></div>
+        </div>
+        <div class="percent">${sub.mastery}% mastery</div>
+      </div>
+    `;
   });
-}
 
-function openModal(){
-  document.getElementById("modal").style.display="flex";
-}
-
-function closeModal(){
-  document.getElementById("modal").style.display="none";
-  document.getElementById("subjectName").value="";
+  localStorage.setItem("subjects", JSON.stringify(subjects));
 }
 
 function addSubject(){
-  const name = document.getElementById("subjectName").value.trim();
-  if(!name) return alert("Enter subject name");
+  const name = prompt("Subject name:");
+  if(!name) return;
 
   subjects.push({
-    id:Date.now(),
     name:name,
     mastery:0
   });
 
-  saveSubjects();
-  loadSubjects();
-  closeModal();
+  renderSubjects();
 }
 
-/* init */
-loadSubjects();
+renderSubjects();
 </script>
 
 </body>

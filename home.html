@@ -53,7 +53,7 @@ button.delete{
   font-size:12px;
   margin-left:6px;
 }
-.lesson,.task{
+.task,.lesson{
   display:flex;
   align-items:center;
   gap:8px;
@@ -74,6 +74,9 @@ button.delete{
   background:#4caf50;
   height:100%;
 }
+.subject-box{
+  margin-bottom:12px;
+}
 .subject-header{
   display:flex;
   justify-content:space-between;
@@ -86,7 +89,11 @@ button.delete{
 
 <header>
   <strong>StudyHelper</strong>
-  <button id="logout">Logout</button>
+  <div>
+    <button onclick="location.href='subjects.html'">📚 Subjects</button>
+    <button onclick="location.href='calendar.html'">📅 Calendar</button>
+    <button id="logout">Logout</button>
+  </div>
 </header>
 
 <div class="container">
@@ -159,6 +166,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 let uid;
 
+/* AUTH */
 onAuthStateChanged(auth,user=>{
   if(!user) location.href="index.html";
   uid=user.uid;
@@ -166,7 +174,6 @@ onAuthStateChanged(auth,user=>{
   loadTasks();
   loadSubjects();
 });
-
 logout.onclick=()=>signOut(auth);
 
 /* NOTES */
@@ -179,7 +186,6 @@ saveNote.onclick=()=>{
   noteTitle.value="";
   noteBody.value="";
 };
-
 function loadNotes(){
   onSnapshot(collection(db,"users",uid,"notes"),snap=>{
     notesList.innerHTML="";
@@ -206,7 +212,6 @@ addTask.onclick=()=>{
   });
   taskInput.value="";
 };
-
 function loadTasks(){
   onSnapshot(collection(db,"users",uid,"tasks"),snap=>{
     tasksList.innerHTML="";
@@ -234,7 +239,7 @@ function loadTasks(){
   });
 }
 
-/* SUBJECTS + LESSONS + DELETE */
+/* SUBJECTS + LESSONS */
 function loadSubjects(){
   onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
     subjectsMastery.innerHTML="";
@@ -244,25 +249,28 @@ function loadSubjects(){
       const sid=s.id;
       const sName=s.data().name;
 
-      const subjectDiv=document.createElement("div");
-      subjectDiv.className="subject-header";
-      subjectDiv.innerHTML=`<strong>${sName}</strong>`;
-
-      const delSub=document.createElement("button");
-      delSub.textContent="Delete";
-      delSub.className="delete";
-      delSub.onclick=async()=>{
-        const ls=await getDocs(collection(db,"users",uid,"subjects",sid,"lessons"));
-        ls.forEach(l=>deleteDoc(l.ref));
-        deleteDoc(doc(db,"users",uid,"subjects",sid));
-      };
-
-      subjectDiv.appendChild(delSub);
-      subjectsMastery.appendChild(subjectDiv);
-
       onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
         let done=0;
         let total=ls.size;
+
+        const subjectBox=document.createElement("div");
+        subjectBox.className="subject-box";
+
+        const header=document.createElement("div");
+        header.className="subject-header";
+        header.innerHTML=`<strong>${sName}</strong>`;
+
+        const delSub=document.createElement("button");
+        delSub.textContent="Delete";
+        delSub.className="delete";
+        delSub.onclick=async()=>{
+          const all=await getDocs(collection(db,"users",uid,"subjects",sid,"lessons"));
+          all.forEach(l=>deleteDoc(l.ref));
+          deleteDoc(doc(db,"users",uid,"subjects",sid));
+        };
+
+        header.appendChild(delSub);
+        subjectBox.appendChild(header);
 
         ls.forEach(l=>{
           const d=l.data();
@@ -279,21 +287,24 @@ function loadSubjects(){
             {completed:cb.checked}
           );
 
-          const delLesson=document.createElement("button");
-          delLesson.textContent="X";
-          delLesson.className="delete";
-          delLesson.onclick=()=>deleteDoc(
+          const delL=document.createElement("button");
+          delL.textContent="X";
+          delL.className="delete";
+          delL.onclick=()=>deleteDoc(
             doc(db,"users",uid,"subjects",sid,"lessons",l.id)
           );
 
-          row.append(cb,`${sName}: ${d.title}`,delLesson);
+          row.append(cb,`${d.title}`,delL);
           lessonsList.appendChild(row);
         });
 
         const percent=total?Math.round((done/total)*100):0;
-        subjectsMastery.innerHTML+=`
+        subjectBox.innerHTML+=`
           <div class="progress"><div style="width:${percent}%"></div></div>
+          <small>${percent}% completed</small>
         `;
+
+        subjectsMastery.appendChild(subjectBox);
       });
     });
   });

@@ -8,7 +8,7 @@
 <style>
 body{
   margin:0;
-  font-family:Arial, sans-serif;
+  font-family:Arial;
   background:linear-gradient(135deg,#667eea,#764ba2);
   min-height:100vh;
 }
@@ -20,55 +20,56 @@ header{
   align-items:center;
 }
 .container{
-  max-width:1000px;
+  max-width:1100px;
   margin:20px auto;
-  padding:20px;
+  padding:10px;
 }
 .grid{
   display:grid;
   grid-template-columns:2fr 1fr;
-  gap:20px;
+  gap:15px;
 }
 .card{
   background:#fff;
   padding:15px;
   border-radius:10px;
-  margin-bottom:20px;
+  margin-bottom:15px;
 }
-input, textarea{
+input,textarea{
   width:100%;
-  padding:10px;
-  margin:6px 0;
+  padding:8px;
+  margin-bottom:8px;
 }
 button{
   padding:8px 12px;
   border:none;
   border-radius:6px;
-  background:#667eea;
+  background:#4caf50;
   color:white;
   cursor:pointer;
 }
-.delete{
-  background:red;
-  float:right;
+button.small{
+  padding:5px 8px;
+  font-size:12px;
 }
 .progress{
   background:#ddd;
-  height:10px;
-  border-radius:10px;
+  height:8px;
+  border-radius:5px;
   overflow:hidden;
 }
 .progress div{
+  background:#4caf50;
   height:100%;
 }
-li{
-  background:#f3f3f3;
-  padding:10px;
-  border-radius:6px;
-  margin-top:6px;
+.lesson{
+  display:flex;
+  align-items:center;
+  gap:8px;
 }
-@media(max-width:800px){
-  .grid{grid-template-columns:1fr;}
+.lesson.done{
+  text-decoration:line-through;
+  color:#777;
 }
 </style>
 </head>
@@ -78,43 +79,45 @@ li{
 <header>
   <strong>StudyHelper</strong>
   <div>
+    <button onclick="location.href='subjects.html'">📚 Subjects</button>
     <button onclick="location.href='calendar.html'">📅 Calendar</button>
-    <button id="logoutBtn">Logout</button>
+    <button id="logout">Logout</button>
   </div>
 </header>
 
 <div class="container">
-
-  <!-- WELCOME -->
-  <div class="card">
-    <h3>Welcome 🎉</h3>
-    <p id="userEmail"></p>
-  </div>
 
   <div class="grid">
 
     <!-- LEFT -->
     <div>
 
-      <!-- NOTES -->
+      <!-- ADD NOTE -->
       <div class="card">
         <h3>Add Note</h3>
-        <input id="title" placeholder="Title">
-        <textarea id="content" placeholder="Your note"></textarea>
-        <button id="saveBtn">Save Note</button>
+        <input id="noteTitle" placeholder="Title">
+        <textarea id="noteBody" placeholder="Your note"></textarea>
+        <button id="saveNote">Save Note</button>
       </div>
 
+      <!-- NOTES -->
       <div class="card">
         <h3>Your Notes</h3>
-        <div id="notes"></div>
+        <div id="notesList"></div>
       </div>
 
       <!-- TASKS -->
       <div class="card">
         <h3>Tasks</h3>
         <input id="taskInput" placeholder="New task">
-        <button id="addTaskBtn">Add Task</button>
-        <ul id="taskList"></ul>
+        <button id="addTask">Add Task</button>
+        <div id="tasksList"></div>
+      </div>
+
+      <!-- LESSONS (Quick View) -->
+      <div class="card">
+        <h3>Lessons</h3>
+        <div id="lessonsList"></div>
       </div>
 
     </div>
@@ -122,13 +125,16 @@ li{
     <!-- RIGHT -->
     <div>
 
-      <!-- SUBJECTS -->
+      <!-- SUBJECTS MASTERY -->
       <div class="card">
         <h3>📊 Subjects Mastery</h3>
-        <div id="subjectsPreview">Loading...</div>
-        <button style="margin-top:10px" onclick="location.href='subjects.html'">
-          View All Subjects
-        </button>
+        <div id="subjectsMastery"></div>
+      </div>
+
+      <!-- TASKS MASTERY -->
+      <div class="card">
+        <h3>✅ Tasks Progress</h3>
+        <div id="tasksMastery"></div>
       </div>
 
     </div>
@@ -147,10 +153,7 @@ import {
   onSnapshot,
   deleteDoc,
   doc,
-  updateDoc,
-  serverTimestamp,
-  query,
-  orderBy
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -163,122 +166,130 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let uid=null;
+let uid = null;
 
-const userEmail=document.getElementById("userEmail");
-const notesDiv=document.getElementById("notes");
-const taskList=document.getElementById("taskList");
-const subjectsPreview=document.getElementById("subjectsPreview");
-
-// AUTH
-onAuthStateChanged(auth,user=>{
+onAuthStateChanged(auth, user=>{
   if(!user){
     location.href="index.html";
   }else{
-    uid=user.uid;
-    userEmail.textContent="Logged in as: "+user.email;
+    uid = user.uid;
     loadNotes();
     loadTasks();
-    loadSubjects();
+    loadSubjectsMastery();
+    loadLessons();
   }
 });
 
-// NOTES
+logout.onclick = ()=> signOut(auth);
+
+/* ---------- NOTES ---------- */
+saveNote.onclick = async ()=>{
+  if(!noteTitle.value || !noteBody.value) return;
+  await addDoc(collection(db,"users",uid,"notes"),{
+    title:noteTitle.value,
+    body:noteBody.value
+  });
+  noteTitle.value="";
+  noteBody.value="";
+};
+
 function loadNotes(){
-  const ref=query(
-    collection(db,"users",uid,"notes"),
-    orderBy("createdAt","desc")
-  );
-  onSnapshot(ref,snap=>{
-    notesDiv.innerHTML="";
+  onSnapshot(collection(db,"users",uid,"notes"),snap=>{
+    notesList.innerHTML="";
     snap.forEach(d=>{
       const n=d.data();
-      notesDiv.innerHTML+=`
-        <div class="card">
+      notesList.innerHTML+=`
+        <div>
           <strong>${n.title}</strong>
-          <button class="delete" onclick="deleteNote('${d.id}')">Delete</button>
-          <p>${n.content}</p>
+          <button class="small" onclick="deleteDoc(doc(db,'users','${uid}','notes','${d.id}'))">Delete</button>
+          <p>${n.body}</p>
         </div>
       `;
     });
   });
 }
-window.deleteNote=id=>{
-  deleteDoc(doc(db,"users",uid,"notes",id));
-};
-saveBtn.onclick=async()=>{
-  if(!title.value||!content.value) return alert("Fill all fields");
-  await addDoc(collection(db,"users",uid,"notes"),{
-    title:title.value,
-    content:content.value,
-    createdAt:serverTimestamp()
-  });
-  title.value="";content.value="";
-};
 
-// TASKS
-function loadTasks(){
-  const ref=collection(db,"users",uid,"tasks");
-  onSnapshot(ref,snap=>{
-    taskList.innerHTML="";
-    snap.forEach(d=>{
-      const t=d.data();
-      const li=document.createElement("li");
-      li.innerHTML=`
-        <input type="checkbox" ${t.done?"checked":""}>
-        <span style="text-decoration:${t.done?"line-through":"none"}">${t.text}</span>
-        <button class="delete">Delete</button>
-      `;
-      li.querySelector("input").onchange=e=>{
-        updateDoc(doc(db,"users",uid,"tasks",d.id),{done:e.target.checked});
-      };
-      li.querySelector("button").onclick=()=>{
-        deleteDoc(doc(db,"users",uid,"tasks",d.id));
-      };
-      taskList.appendChild(li);
-    });
-  });
-}
-addTaskBtn.onclick=async()=>{
+/* ---------- TASKS ---------- */
+addTask.onclick = async ()=>{
   if(!taskInput.value) return;
   await addDoc(collection(db,"users",uid,"tasks"),{
     text:taskInput.value,
-    done:false,
-    createdAt:serverTimestamp()
+    done:false
   });
   taskInput.value="";
 };
 
-// SUBJECTS
-function loadSubjects(){
-  const ref=collection(db,"users",uid,"subjects");
-  onSnapshot(ref,snap=>{
-    subjectsPreview.innerHTML="";
-    if(snap.empty){
-      subjectsPreview.innerHTML="<p>No subjects yet</p>";
-      return;
-    }
+function loadTasks(){
+  onSnapshot(collection(db,"users",uid,"tasks"),snap=>{
+    tasksList.innerHTML="";
+    let done=0;
     snap.forEach(d=>{
-      const s=d.data();
-      const m=s.mastery ?? 0;
-      const color=m<50?"#f44336":m<80?"#ffc107":"#4caf50";
-      subjectsPreview.innerHTML+=`
-        <div style="margin-bottom:12px">
-          <strong>${s.name}</strong> – ${m}%
-          <div class="progress">
-            <div style="width:${m}%;background:${color}"></div>
-          </div>
+      const t=d.data();
+      if(t.done) done++;
+      tasksList.innerHTML+=`
+        <div>
+          <input type="checkbox" ${t.done?"checked":""}
+          onchange="updateDoc(doc(db,'users','${uid}','tasks','${d.id}'),{done:this.checked})">
+          ${t.text}
+          <button class="small" onclick="deleteDoc(doc(db,'users','${uid}','tasks','${d.id}'))">X</button>
         </div>
       `;
+    });
+
+    let total=snap.size;
+    let percent= total? Math.round(done/total*100):0;
+    tasksMastery.innerHTML=`
+      ${done}/${total} completed (${percent}%)
+      <div class="progress"><div style="width:${percent}%"></div></div>
+    `;
+  });
+}
+
+/* ---------- SUBJECTS MASTERY ---------- */
+function loadSubjectsMastery(){
+  onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
+    subjectsMastery.innerHTML="";
+    snap.forEach(s=>{
+      const subj=s.data();
+      const sid=s.id;
+      onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
+        let done=0;
+        ls.forEach(l=>{ if(l.data().completed) done++; });
+        let total=ls.size;
+        let percent= total?Math.round(done/total*100):0;
+        subjectsMastery.innerHTML+=`
+          <div>
+            <strong>${subj.name}</strong> – ${percent}%
+            <div class="progress"><div style="width:${percent}%"></div></div>
+          </div>
+        `;
+      });
     });
   });
 }
 
-// LOGOUT
-logoutBtn.onclick=async()=>{
-  await signOut(auth);
-  location.href="index.html";
-};
+/* ---------- LESSONS QUICK CHECK ---------- */
+function loadLessons(){
+  onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
+    lessonsList.innerHTML="";
+    snap.forEach(s=>{
+      const sid=s.id;
+      const name=s.data().name;
+      onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
+        ls.forEach(l=>{
+          const data=l.data();
+          lessonsList.innerHTML+=`
+            <div class="lesson ${data.completed?'done':''}">
+              <input type="checkbox" ${data.completed?'checked':''}
+              onchange="updateDoc(doc(db,'users','${uid}','subjects','${sid}','lessons','${l.id}'),{completed:this.checked})">
+              ${name}: ${data.title}
+            </div>
+          `;
+        });
+      });
+    });
+  });
+}
 </script>
 
 </body>

@@ -20,7 +20,7 @@ header{
   align-items:center;
 }
 .container{
-  max-width:1200px;
+  max-width:1100px;
   margin:20px auto;
   padding:10px;
 }
@@ -53,26 +53,15 @@ button.delete{
   font-size:12px;
   margin-left:6px;
 }
-.progress{
-  background:#ddd;
-  height:8px;
-  border-radius:5px;
-  overflow:hidden;
-  margin-top:6px;
-}
-.progress div{
-  background:#4caf50;
-  height:100%;
-}
-.task.done,.lesson.done{
-  text-decoration:line-through;
-  color:#777;
-}
-.lesson,.task{
+.task,.lesson{
   display:flex;
   align-items:center;
   gap:8px;
   margin-bottom:6px;
+}
+.task.done,.lesson.done{
+  text-decoration:line-through;
+  color:#777;
 }
 </style>
 </head>
@@ -81,11 +70,7 @@ button.delete{
 
 <header>
   <strong>StudyHelper</strong>
-  <div>
-    <button onclick="location.href='subjects.html'">📚 Subjects</button>
-    <button onclick="location.href='calendar.html'">📅 Calendar</button>
-    <button id="logout">Logout</button>
-  </div>
+  <button id="logout">Logout</button>
 </header>
 
 <div class="container">
@@ -113,24 +98,19 @@ button.delete{
 <div id="tasksList"></div>
 </div>
 
-<div class="card">
-<h3>📘 Lessons</h3>
-<div id="lessonsList"></div>
-</div>
-
 </div>
 
 <!-- RIGHT -->
 <div>
 
 <div class="card">
-<h3>✅ Tasks Progress</h3>
-<div id="tasksMastery"></div>
+<h3>📊 Subjects Mastery</h3>
+<div id="subjectsList"></div>
 </div>
 
 <div class="card">
-<h3>📊 Subjects Mastery</h3>
-<div id="subjectsMastery"></div>
+<h3>📘 Lessons</h3>
+<div id="lessonsList"></div>
 </div>
 
 </div>
@@ -148,10 +128,10 @@ import {
   onSnapshot,
   deleteDoc,
   doc,
-  updateDoc
+  updateDoc,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-/* FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
   authDomain: "studyhelper-app.firebaseapp.com",
@@ -174,10 +154,10 @@ onAuthStateChanged(auth,user=>{
 
 logout.onclick=()=>signOut(auth);
 
-/* ================= NOTES ================= */
-saveNote.onclick = async ()=>{
-  if(!noteTitle.value || !noteBody.value) return;
-  await addDoc(collection(db,"users",uid,"notes"),{
+/* NOTES */
+saveNote.onclick=()=>{
+  if(!noteTitle.value) return;
+  addDoc(collection(db,"users",uid,"notes"),{
     title:noteTitle.value,
     body:noteBody.value
   });
@@ -189,9 +169,8 @@ function loadNotes(){
   onSnapshot(collection(db,"users",uid,"notes"),snap=>{
     notesList.innerHTML="";
     snap.forEach(d=>{
-      const n=d.data();
       const div=document.createElement("div");
-      div.innerHTML=`<strong>${n.title}</strong><p>${n.body}</p>`;
+      div.innerHTML=`<strong>${d.data().title}</strong><p>${d.data().body}</p>`;
       const del=document.createElement("button");
       del.textContent="Delete";
       del.className="delete";
@@ -202,10 +181,10 @@ function loadNotes(){
   });
 }
 
-/* ================= TASKS + PROGRESS ================= */
-addTask.onclick = async ()=>{
+/* TASKS */
+addTask.onclick=()=>{
   if(!taskInput.value) return;
-  await addDoc(collection(db,"users",uid,"tasks"),{
+  addDoc(collection(db,"users",uid,"tasks"),{
     text:taskInput.value,
     done:false
   });
@@ -215,24 +194,15 @@ addTask.onclick = async ()=>{
 function loadTasks(){
   onSnapshot(collection(db,"users",uid,"tasks"),snap=>{
     tasksList.innerHTML="";
-    let done=0;
-    let total=snap.size;
-
     snap.forEach(d=>{
       const t=d.data();
-      const isDone = t.done === true;
-      if(isDone) done++;
-
       const row=document.createElement("div");
-      row.className="task"+(isDone?" done":"");
+      row.className="task"+(t.done?" done":"");
 
       const cb=document.createElement("input");
       cb.type="checkbox";
-      cb.checked=isDone;
-      cb.onchange=()=>updateDoc(
-        doc(db,"users",uid,"tasks",d.id),
-        { done: cb.checked }
-      );
+      cb.checked=t.done;
+      cb.onchange=()=>updateDoc(doc(db,"users",uid,"tasks",d.id),{done:cb.checked});
 
       const del=document.createElement("button");
       del.textContent="X";
@@ -242,34 +212,34 @@ function loadTasks(){
       row.append(cb,t.text,del);
       tasksList.appendChild(row);
     });
-
-    const percent = total ? Math.round((done/total)*100) : 0;
-
-    tasksMastery.innerHTML=`
-      <strong>${done}/${total} completed (${percent}%)</strong>
-      <div class="progress"><div style="width:${percent}%"></div></div>
-    `;
   });
 }
 
-/* ================= SUBJECTS + LESSONS ================= */
+/* SUBJECTS + LESSONS */
 function loadSubjects(){
   onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
-    subjectsMastery.innerHTML="";
+    subjectsList.innerHTML="";
     lessonsList.innerHTML="";
 
     snap.forEach(s=>{
-      const sName=s.data().name;
-      const sid=s.id;
+      const sDiv=document.createElement("div");
+      sDiv.innerHTML=`<strong>${s.data().name}</strong>`;
 
-      onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
-        let done=0;
-        let total=ls.size;
+      const delS=document.createElement("button");
+      delS.textContent="Delete Subject";
+      delS.className="delete";
+      delS.onclick=async()=>{
+        const ls=await getDocs(collection(db,"users",uid,"subjects",s.id,"lessons"));
+        ls.forEach(l=>deleteDoc(l.ref));
+        deleteDoc(doc(db,"users",uid,"subjects",s.id));
+      };
 
+      sDiv.appendChild(delS);
+      subjectsList.appendChild(sDiv);
+
+      onSnapshot(collection(db,"users",uid,"subjects",s.id,"lessons"),ls=>{
         ls.forEach(l=>{
           const d=l.data();
-          if(d.completed) done++;
-
           const row=document.createElement("div");
           row.className="lesson"+(d.completed?" done":"");
 
@@ -277,22 +247,20 @@ function loadSubjects(){
           cb.type="checkbox";
           cb.checked=d.completed;
           cb.onchange=()=>updateDoc(
-            doc(db,"users",uid,"subjects",sid,"lessons",l.id),
-            { completed: cb.checked }
+            doc(db,"users",uid,"subjects",s.id,"lessons",l.id),
+            {completed:cb.checked}
           );
 
-          row.append(cb,`${sName}: ${d.title}`);
+          const del=document.createElement("button");
+          del.textContent="X";
+          del.className="delete";
+          del.onclick=()=>deleteDoc(
+            doc(db,"users",uid,"subjects",s.id,"lessons",l.id)
+          );
+
+          row.append(cb,`${s.data().name}: ${d.title}`,del);
           lessonsList.appendChild(row);
         });
-
-        const percent = total ? Math.round((done/total)*100) : 0;
-
-        subjectsMastery.innerHTML+=`
-          <div>
-            <strong>${sName}</strong> – ${percent}%
-            <div class="progress"><div style="width:${percent}%"></div></div>
-          </div>
-        `;
       });
     });
   });

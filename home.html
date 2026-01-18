@@ -32,7 +32,7 @@ header{
 .card{
   background:#fff;
   padding:15px;
-  border-radius:12px;
+  border-radius:10px;
   margin-bottom:15px;
 }
 input,textarea{
@@ -48,17 +48,16 @@ button{
   color:white;
   cursor:pointer;
 }
-button.delete{
-  background:#f44336;
+button.small{
+  padding:5px 8px;
   font-size:12px;
-  margin-left:6px;
+  background:#f44336;
 }
 .progress{
-  background:#e0e0e0;
+  background:#ddd;
   height:8px;
   border-radius:5px;
   overflow:hidden;
-  margin-top:5px;
 }
 .progress div{
   background:#4caf50;
@@ -68,15 +67,11 @@ button.delete{
   display:flex;
   align-items:center;
   gap:8px;
-  padding:6px;
-  border-radius:6px;
 }
 .lesson.done{
-  background:#f1f1f1;
   text-decoration:line-through;
   color:#777;
 }
-.hidden{display:none;}
 </style>
 </head>
 
@@ -86,49 +81,56 @@ button.delete{
   <strong>StudyHelper</strong>
   <div>
     <button onclick="location.href='subjects.html'">📚 Subjects</button>
+    <button onclick="location.href='calendar.html'">📅 Calendar</button>
     <button id="logout">Logout</button>
   </div>
 </header>
 
-<div class="container hidden" id="app">
+<div class="container">
 <div class="grid">
 
+<!-- LEFT -->
 <div>
-  <div class="card">
-    <h3>Add Note</h3>
-    <input id="noteTitle" placeholder="Title">
-    <textarea id="noteBody" placeholder="Your note"></textarea>
-    <button id="saveNote">Save Note</button>
-  </div>
 
-  <div class="card">
-    <h3>Your Notes</h3>
-    <div id="notesList"></div>
-  </div>
-
-  <div class="card">
-    <h3>Tasks</h3>
-    <input id="taskInput" placeholder="New task">
-    <button id="addTask">Add Task</button>
-    <div id="tasksList"></div>
-  </div>
+<div class="card">
+<h3>Add Note</h3>
+<input id="noteTitle" placeholder="Title">
+<textarea id="noteBody" placeholder="Your note"></textarea>
+<button id="saveNote">Save Note</button>
 </div>
 
+<div class="card">
+<h3>Your Notes</h3>
+<div id="notesList"></div>
+</div>
+
+<div class="card">
+<h3>Tasks</h3>
+<input id="taskInput" placeholder="New task">
+<button id="addTask">Add Task</button>
+<div id="tasksList"></div>
+</div>
+
+<div class="card">
+<h3>Lessons</h3>
+<div id="lessonsList"></div>
+</div>
+
+</div>
+
+<!-- RIGHT -->
 <div>
-  <div class="card">
-    <h3>📊 Subjects Mastery</h3>
-    <div id="subjectsMastery"></div>
-  </div>
 
-  <div class="card">
-    <h3>✅ Tasks Progress</h3>
-    <div id="tasksMastery"></div>
-  </div>
+<div class="card">
+<h3>📊 Subjects Mastery</h3>
+<div id="subjectsMastery"></div>
+</div>
 
-  <div class="card">
-    <h3>📘 Lessons</h3>
-    <div id="lessonsList"></div>
-  </div>
+<div class="card">
+<h3>✅ Tasks Progress</h3>
+<div id="tasksMastery"></div>
+</div>
+
 </div>
 
 </div>
@@ -145,9 +147,8 @@ import {
   deleteDoc,
   doc,
   updateDoc
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.jsi</script>
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-<script type="module">
 const firebaseConfig = {
   apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
   authDomain: "studyhelper-app.firebaseapp.com",
@@ -157,51 +158,135 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-let uid;
+let uid = null;
 
-onAuthStateChanged(auth, user=>{
-  if(!user) location.replace("index.html");
-  uid = user.uid;
-  app.classList.remove("hidden");
+onAuthStateChanged(auth,user=>{
+  if(!user) location.href="index.html";
+  uid=user.uid;
+  loadNotes();
   loadTasks();
+  loadSubjectsMastery();
+  loadLessons();
 });
 
-logout.onclick = ()=>signOut(auth);
+logout.onclick=()=>signOut(auth);
 
-/* TASKS — FINAL FIX */
+/* NOTES */
+saveNote.onclick=async()=>{
+  if(!noteTitle.value||!noteBody.value) return;
+  await addDoc(collection(db,"users",uid,"notes"),{
+    title:noteTitle.value,
+    body:noteBody.value
+  });
+  noteTitle.value="";
+  noteBody.value="";
+};
+
+function loadNotes(){
+  onSnapshot(collection(db,"users",uid,"notes"),snap=>{
+    notesList.innerHTML="";
+    snap.forEach(d=>{
+      const n=d.data();
+      const div=document.createElement("div");
+      div.innerHTML=`
+        <strong>${n.title}</strong>
+        <button class="small">Delete</button>
+        <p>${n.body}</p>
+      `;
+      div.querySelector("button").onclick=()=>deleteDoc(doc(db,"users",uid,"notes",d.id));
+      notesList.appendChild(div);
+    });
+  });
+}
+
+/* TASKS */
+addTask.onclick=async()=>{
+  if(!taskInput.value) return;
+  await addDoc(collection(db,"users",uid,"tasks"),{
+    text:taskInput.value,
+    done:false
+  });
+  taskInput.value="";
+};
+
 function loadTasks(){
   onSnapshot(collection(db,"users",uid,"tasks"),snap=>{
     tasksList.innerHTML="";
-    let completed = 0;
-
+    let done=0;
     snap.forEach(d=>{
-      const t = d.data();
-      const isDone = t.done === true || t.done === "true";
-      if(isDone) completed++;
-
-      const row = document.createElement("div");
-
-      const cb = document.createElement("input");
-      cb.type="checkbox";
-      cb.checked = isDone;
-      cb.onchange = ()=>updateDoc(doc(db,"users",uid,"tasks",d.id),{done:cb.checked});
-
-      const del = document.createElement("button");
-      del.textContent="X";
-      del.className="delete";
-      del.onclick=()=>deleteDoc(doc(db,"users",uid,"tasks",d.id));
-
-      row.append(cb, document.createTextNode(" "+t.text+" "), del);
+      const t=d.data();
+      if(t.done) done++;
+      const row=document.createElement("div");
+      row.innerHTML=`
+        <input type="checkbox" ${t.done?"checked":""}>
+        ${t.text}
+        <button class="small">X</button>
+      `;
+      row.querySelector("input").onchange=e=>{
+        updateDoc(doc(db,"users",uid,"tasks",d.id),{done:e.target.checked});
+      };
+      row.querySelector("button").onclick=()=>{
+        deleteDoc(doc(db,"users",uid,"tasks",d.id));
+      };
       tasksList.appendChild(row);
     });
-
-    const total = snap.size;
-    const percent = total ? Math.round((completed/total)*100) : 0;
-
-    tasksMastery.innerHTML = `
-      <strong>${completed}/${total} completed (${percent}%)</strong>
+    let total=snap.size;
+    let percent=total?Math.round(done/total*100):0;
+    tasksMastery.innerHTML=`
+      ${done}/${total} completed (${percent}%)
       <div class="progress"><div style="width:${percent}%"></div></div>
     `;
+  });
+}
+
+/* SUBJECTS MASTERY */
+function loadSubjectsMastery(){
+  onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
+    subjectsMastery.innerHTML="";
+    snap.forEach(s=>{
+      const sid=s.id;
+      const name=s.data().name;
+      onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
+        let done=0;
+        ls.forEach(l=>{if(l.data().completed) done++;});
+        let total=ls.size;
+        let percent=total?Math.round(done/total*100):0;
+        subjectsMastery.innerHTML+=`
+          <div>
+            <strong>${name}</strong> – ${percent}%
+            <div class="progress"><div style="width:${percent}%"></div></div>
+          </div>
+        `;
+      });
+    });
+  });
+}
+
+/* LESSONS QUICK */
+function loadLessons(){
+  onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
+    lessonsList.innerHTML="";
+    snap.forEach(s=>{
+      const sid=s.id;
+      const sname=s.data().name;
+      onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
+        ls.forEach(l=>{
+          const d=l.data();
+          const row=document.createElement("div");
+          row.className="lesson"+(d.completed?" done":"");
+          row.innerHTML=`
+            <input type="checkbox" ${d.completed?"checked":""}>
+            ${sname}: ${d.title}
+          `;
+          row.querySelector("input").onchange=e=>{
+            updateDoc(doc(db,"users",uid,"subjects",sid,"lessons",l.id),{
+              completed:e.target.checked
+            });
+          };
+          lessonsList.appendChild(row);
+        });
+      });
+    });
   });
 }
 </script>

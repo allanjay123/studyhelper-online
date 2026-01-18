@@ -23,15 +23,21 @@
 
     .container {
       padding: 20px;
-      max-width: 900px;
+      max-width: 1000px;
       margin: auto;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
     }
 
     .card {
       background: white;
       padding: 15px;
       border-radius: 10px;
-      margin-bottom: 20px;
     }
 
     input, textarea {
@@ -60,6 +66,11 @@
       background: red;
       float: right;
     }
+
+    ul {
+      padding-left: 0;
+      list-style: none;
+    }
   </style>
 </head>
 
@@ -69,13 +80,32 @@
   <strong>StudyHelper</strong>
   <button id="logoutBtn">Logout</button>
 </header>
- <button onclick="location.href='calendar.html'">📅 Calendar</button> 
 
 <div class="container">
 
   <div class="card">
     <h3>Welcome 🎉</h3>
     <p id="userEmail"></p>
+  </div>
+
+  <!-- CALENDAR + SUBJECTS SIDE BY SIDE -->
+  <div class="grid">
+
+    <div class="card">
+      <h3>📅 Calendar</h3>
+      <button onclick="location.href='calendar.html'">
+        Open Calendar
+      </button>
+    </div>
+
+    <div class="card">
+      <h3>📊 Subjects Mastery</h3>
+      <div id="subjectsPreview"></div>
+      <button onclick="location.href='subjects.html'" style="margin-top:10px;">
+        View All Subjects
+      </button>
+    </div>
+
   </div>
 
   <!-- NOTES -->
@@ -85,14 +115,6 @@
     <textarea id="content" placeholder="Your note"></textarea>
     <button id="saveBtn">Save Note</button>
   </div>
-  <!-- 📊 SUBJECTS MASTERY PREVIEW -->
-<section id="subjectsSection" style="margin-top:20px;">
-  <h3>📊 Subjects Mastery</h3>
-  <div id="subjectsPreview"></div>
-  <button onclick="location.href='subjects.html'" style="margin-top:10px;">
-    View All Subjects
-  </button>
-</section>
 
   <div class="card">
     <h3>Your Notes</h3>
@@ -111,22 +133,11 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
   import {
-    getAuth,
-    onAuthStateChanged,
-    signOut
-  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-  import {
-    getFirestore,
-    collection,
-    addDoc,
-    onSnapshot,
-    deleteDoc,
-    doc,
-    updateDoc,
-    serverTimestamp,
-    query,
-    orderBy
+    getFirestore, collection, addDoc, onSnapshot,
+    deleteDoc, doc, updateDoc, serverTimestamp,
+    query, orderBy
   } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -142,164 +153,119 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
+  let currentUserUID = null;
+
   const notesDiv = document.getElementById("notes");
   const userEmail = document.getElementById("userEmail");
-
   const taskInput = document.getElementById("taskInput");
   const addTaskBtn = document.getElementById("addTaskBtn");
   const taskList = document.getElementById("taskList");
 
-  let currentUserUID = null;
-
-  // 🔐 AUTH CHECK
+  // AUTH
   onAuthStateChanged(auth, user => {
     if (!user) {
       window.location.href = "index.html";
-    } else {
-      currentUserUID = user.uid;
-      userEmail.textContent = "Logged in as: " + user.email;
-      loadNotes();
-      loadTasks();
+      return;
     }
+
+    currentUserUID = user.uid;
+    userEmail.textContent = "Logged in as: " + user.email;
+
+    loadNotes();
+    loadTasks();
+    loadSubjectsPreview();
   });
 
-  // 📝 NOTES
+  // NOTES
   function loadNotes() {
-    const notesRef = query(
+    const q = query(
       collection(db, "users", currentUserUID, "notes"),
       orderBy("createdAt", "desc")
     );
 
-    onSnapshot(notesRef, snapshot => {
+    onSnapshot(q, snap => {
       notesDiv.innerHTML = "";
-      snapshot.forEach(docSnap => {
-        const n = docSnap.data();
+      snap.forEach(d => {
+        const n = d.data();
         notesDiv.innerHTML += `
           <div class="note">
             <strong>${n.title}</strong>
-            <button class="delete" onclick="deleteNote('${docSnap.id}')">Delete</button>
+            <button class="delete" onclick="deleteNote('${d.id}')">Delete</button>
             <p>${n.content}</p>
-          </div>
-        `;
+          </div>`;
       });
     });
   }
 
-  window.deleteNote = async (id) => {
-    await deleteDoc(doc(db, "users", currentUserUID, "notes", id));
-  };
+  window.deleteNote = id =>
+    deleteDoc(doc(db, "users", currentUserUID, "notes", id));
 
-  document.getElementById("saveBtn").addEventListener("click", async () => {
-    const title = document.getElementById("title").value;
-    const content = document.getElementById("content").value;
-
+  document.getElementById("saveBtn").onclick = async () => {
+    const title = titleInput.value;
+    const content = contentInput.value;
     if (!title || !content) return alert("Fill all fields");
 
     await addDoc(collection(db, "users", currentUserUID, "notes"), {
-      title,
-      content,
-      createdAt: serverTimestamp()
+      title, content, createdAt: serverTimestamp()
     });
 
-    document.getElementById("title").value = "";
-    document.getElementById("content").value = "";
-  });
-  
-<section class="card">
-  <h3>📚 Subject Mastery</h3>
-  <div id="subjectsPreview"></div>
-</section>
-  // ✅ TASKS
+    titleInput.value = "";
+    contentInput.value = "";
+  };
+
+  // TASKS
   function loadTasks() {
-    const q = collection(db, "users", currentUserUID, "tasks");
-
-    onSnapshot(q, snapshot => {
+    const ref = collection(db, "users", currentUserUID, "tasks");
+    onSnapshot(ref, snap => {
       taskList.innerHTML = "";
-      snapshot.forEach(docSnap => {
-        const task = docSnap.data();
+      snap.forEach(d => {
+        const t = d.data();
         const li = document.createElement("li");
-
         li.innerHTML = `
-          <input type="checkbox" ${task.done ? "checked" : ""}>
-          <span style="text-decoration:${task.done ? "line-through" : "none"}">
-            ${task.text}
-          </span>
-          <button class="delete">Delete</button>
+          <input type="checkbox" ${t.done ? "checked" : ""}>
+          ${t.text}
+          <button class="delete">X</button>
         `;
-
-        li.querySelector("input").addEventListener("change", e => {
-          updateDoc(doc(db, "users", currentUserUID, "tasks", docSnap.id), {
-            done: e.target.checked
-          });
-        });
-
-        li.querySelector("button").addEventListener("click", () => {
-          deleteDoc(doc(db, "users", currentUserUID, "tasks", docSnap.id));
-        });
-
+        li.querySelector("input").onchange = e =>
+          updateDoc(doc(db, "users", currentUserUID, "tasks", d.id), { done: e.target.checked });
+        li.querySelector("button").onclick = () =>
+          deleteDoc(doc(db, "users", currentUserUID, "tasks", d.id));
         taskList.appendChild(li);
       });
     });
   }
 
-  addTaskBtn.addEventListener("click", async () => {
+  addTaskBtn.onclick = async () => {
     if (!taskInput.value) return;
-
     await addDoc(collection(db, "users", currentUserUID, "tasks"), {
-      text: taskInput.value,
-      done: false,
-      createdAt: serverTimestamp()
+      text: taskInput.value, done: false, createdAt: serverTimestamp()
     });
-
     taskInput.value = "";
-  });
+  };
 
-  // 🚪 LOGOUT
-  document.getElementById("logoutBtn").addEventListener("click", async () => {
+  // SUBJECTS PREVIEW
+  function loadSubjectsPreview() {
+    const ref = collection(db, "users", currentUserUID, "subjects");
+    onSnapshot(ref, snap => {
+      const div = document.getElementById("subjectsPreview");
+      div.innerHTML = snap.empty ? "<p>No subjects yet</p>" : "";
+      snap.forEach(d => {
+        const s = d.data();
+        const mastery = Math.min(100, Math.round(
+          (s.tasksTotal ? (s.tasksDone / s.tasksTotal) * 40 : 0) +
+          Math.min((s.notesCount || 0) * 2, 20) +
+          Math.min((s.studyMinutes || 0) / 15, 20)
+        ));
+        div.innerHTML += `<p><strong>${s.name}</strong> – ${mastery}%</p>`;
+      });
+    });
+  }
+
+  // LOGOUT
+  logoutBtn.onclick = async () => {
     await signOut(auth);
     window.location.href = "index.html";
-  });
-  // 📊 LOAD SUBJECTS PREVIEW
-function loadSubjectsPreview() {
-  const ref = collection(db, "users", currentUserUID, "subjects");
-
-  onSnapshot(ref, snap => {
-    const div = document.getElementById("subjectsPreview");
-    div.innerHTML = "";
-
-    if (snap.empty) {
-      div.innerHTML = "<p>No subjects yet</p>";
-      return;
-    }
-
-    snap.forEach(docSnap => {
-      const s = docSnap.data();
-
-      let mastery =
-        (s.tasksTotal ? (s.tasksDone / s.tasksTotal) * 40 : 0) +
-        Math.min((s.notesCount / 10) * 20, 20) +
-        Math.min((s.studyMinutes / 300) * 20, 20) -
-        (s.missedTasks * 5);
-
-      mastery = Math.max(0, Math.min(100, Math.round(mastery)));
-
-      div.innerHTML += `
-        <div style="background:#f5f5f5;padding:10px;border-radius:8px;margin-bottom:8px;">
-          <strong>${s.name}</strong>
-          <div style="background:#ddd;border-radius:10px;height:10px;margin:5px 0;">
-            <div style="
-              width:${mastery}%;
-              height:100%;
-              border-radius:10px;
-              background:${mastery<50?'#f44336':mastery<80?'#ffc107':'#4caf50'};
-            "></div>
-          </div>
-          <small>${mastery}% mastery</small>
-        </div>
-      `;
-    });
-  });
-} 
+  };
 </script>
 
 </body>

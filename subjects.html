@@ -28,6 +28,10 @@ header{
   padding:15px;
   border-radius:10px;
   margin-bottom:15px;
+  cursor:pointer;
+}
+.card:hover{
+  background:#f1f1f1;
 }
 input{
   width:100%;
@@ -41,6 +45,17 @@ button{
   background:#4caf50;
   color:white;
   cursor:pointer;
+}
+.progress{
+  background:#ddd;
+  border-radius:5px;
+  overflow:hidden;
+  height:10px;
+  margin-top:6px;
+}
+.progress div{
+  background:#4caf50;
+  height:100%;
 }
 </style>
 </head>
@@ -58,7 +73,6 @@ button{
   <div class="card">
     <h3>Add Subject</h3>
     <input id="subjectName" placeholder="Subject name (e.g. Math)">
-    <input id="subjectMastery" type="number" placeholder="Mastery % (0–100)">
     <button id="addBtn">➕ Add Subject</button>
   </div>
 
@@ -70,7 +84,12 @@ button{
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { 
+  getFirestore,
+  collection,
+  addDoc,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
@@ -84,6 +103,7 @@ const db = getFirestore(app);
 
 let uid = null;
 const list = document.getElementById("list");
+const subjectName = document.getElementById("subjectName");
 
 onAuthStateChanged(auth, user=>{
   if(!user){
@@ -99,17 +119,26 @@ function loadSubjects(){
 
   onSnapshot(ref, snap=>{
     list.innerHTML="";
+
     if(snap.empty){
       list.innerHTML="<div class='card'>No subjects yet</div>";
       return;
     }
 
-    snap.forEach(d=>{
-      const s = d.data();
+    snap.forEach(doc=>{
+      const s = doc.data();
+
+      const total = s.totalLessons || 0;
+      const done = s.completedLessons || 0;
+      const percent = total === 0 ? 0 : Math.round((done / total) * 100);
+
       list.innerHTML += `
-        <div class="card">
+        <div class="card" onclick="openSubject('${doc.id}')">
           <strong>${s.name}</strong><br>
-          Mastery: ${s.mastery}%
+          ${done}/${total} lessons completed (${percent}%)
+          <div class="progress">
+            <div style="width:${percent}%"></div>
+          </div>
         </div>
       `;
     });
@@ -118,20 +147,22 @@ function loadSubjects(){
 
 document.getElementById("addBtn").onclick = async ()=>{
   const name = subjectName.value.trim();
-  const mastery = Number(subjectMastery.value);
-
-  if(!name || mastery<0 || mastery>100){
-    alert("Invalid input");
+  if(!name){
+    alert("Subject name required");
     return;
   }
 
   await addDoc(collection(db,"users",uid,"subjects"),{
     name,
-    mastery
+    totalLessons: 0,
+    completedLessons: 0
   });
 
   subjectName.value="";
-  subjectMastery.value="";
+};
+
+window.openSubject = (id)=>{
+  location.href = `lessons.html?subjectId=${id}`;
 };
 </script>
 

@@ -10,10 +10,11 @@ body{
   margin:0;
   font-family:Arial;
   background:linear-gradient(135deg,#667eea,#764ba2);
+  min-height:100vh;
 }
 header{
   background:#fff;
-  padding:12px 20px;
+  padding:10px 20px;
   display:flex;
   justify-content:space-between;
   align-items:center;
@@ -21,15 +22,18 @@ header{
 .container{
   max-width:1100px;
   margin:20px auto;
-  padding:20px;
+  padding:10px;
+}
+.grid{
   display:grid;
   grid-template-columns:2fr 1fr;
-  gap:16px;
+  gap:15px;
 }
 .card{
   background:#fff;
   padding:15px;
   border-radius:10px;
+  margin-bottom:15px;
 }
 input,textarea{
   width:100%;
@@ -37,34 +41,32 @@ input,textarea{
   margin-bottom:8px;
 }
 button{
-  padding:7px 12px;
+  padding:8px 12px;
   border:none;
   border-radius:6px;
-  cursor:pointer;
   background:#4caf50;
   color:white;
+  cursor:pointer;
 }
-.small{
-  background:#f44336;
+button.small{
+  padding:5px 8px;
   font-size:12px;
-  margin-left:6px;
+  background:#f44336;
 }
 .progress{
-  height:8px;
   background:#ddd;
+  height:8px;
   border-radius:5px;
   overflow:hidden;
-  margin-top:4px;
 }
 .progress div{
-  height:100%;
   background:#4caf50;
+  height:100%;
 }
 .lesson{
   display:flex;
   align-items:center;
-  gap:6px;
-  margin-bottom:4px;
+  gap:8px;
 }
 .lesson.done{
   text-decoration:line-through;
@@ -85,69 +87,70 @@ button{
 </header>
 
 <div class="container">
+<div class="grid">
 
-  <!-- LEFT -->
-  <div>
+<!-- LEFT -->
+<div>
 
-    <div class="card">
-      <h3>Add Note</h3>
-      <input id="noteTitle" placeholder="Title">
-      <textarea id="noteBody" placeholder="Your note"></textarea>
-      <button id="saveNote">Save Note</button>
-    </div>
+<div class="card">
+<h3>Add Note</h3>
+<input id="noteTitle" placeholder="Title">
+<textarea id="noteBody" placeholder="Your note"></textarea>
+<button id="saveNote">Save Note</button>
+</div>
 
-    <div class="card">
-      <h3>Your Notes</h3>
-      <div id="notes"></div>
-    </div>
+<div class="card">
+<h3>Your Notes</h3>
+<div id="notesList"></div>
+</div>
 
-    <div class="card">
-      <h3>Tasks</h3>
-      <input id="taskInput" placeholder="New task">
-      <button id="addTask">Add Task</button>
-      <div id="tasks"></div>
-    </div>
+<div class="card">
+<h3>Tasks</h3>
+<input id="taskInput" placeholder="New task">
+<button id="addTask">Add Task</button>
+<div id="tasksList"></div>
+</div>
 
-    <div class="card">
-      <h3>Lessons</h3>
-      <div id="lessons"></div>
-    </div>
+<div class="card">
+<h3>Lessons</h3>
+<div id="lessonsList"></div>
+</div>
 
-  </div>
+</div>
 
-  <!-- RIGHT -->
-  <div>
+<!-- RIGHT -->
+<div>
 
-    <div class="card">
-      <h3>📊 Subjects Mastery</h3>
-      <div id="subjectsMastery"></div>
-    </div>
+<div class="card">
+<h3>📊 Subjects Mastery</h3>
+<div id="subjectsMastery"></div>
+</div>
 
-    <div class="card">
-      <h3>✅ Tasks Progress</h3>
-      <div id="tasksProgress"></div>
-    </div>
+<div class="card">
+<h3>✅ Tasks Progress</h3>
+<div id="tasksMastery"></div>
+</div>
 
-  </div>
+</div>
 
+</div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import {
   getFirestore,
   collection,
   addDoc,
-  getDocs,
+  onSnapshot,
   deleteDoc,
-  updateDoc,
-  doc
+  doc,
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-/* 🔥 FIREBASE */
 const firebaseConfig = {
-  apiKey: "AIzaSyCkY...",
+  apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
   authDomain: "studyhelper-app.firebaseapp.com",
   projectId: "studyhelper-app"
 };
@@ -155,162 +158,137 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+let uid = null;
 
-const uid = auth.currentUser.uid; // SAFE (auth-gate)
+onAuthStateChanged(auth,user=>{
+  if(!user) location.href="index.html";
+  uid=user.uid;
+  loadNotes();
+  loadTasks();
+  loadSubjectsMastery();
+  loadLessons();
+});
 
-/* ELEMENTS */
-const notesDiv = notes;
-const tasksDiv = tasks;
-const lessonsDiv = lessons;
-const subjectsDiv = subjectsMastery;
-const tasksProgress = document.getElementById("tasksProgress");
+logout.onclick=()=>signOut(auth);
 
-/* LOGOUT */
-logout.onclick = async ()=>{
-  await signOut(auth);
-  location.replace("index.html");
-};
-
-/* ADD NOTE */
-saveNote.onclick = async ()=>{
-  if(!noteTitle.value || !noteBody.value) return;
+/* NOTES */
+saveNote.onclick=async()=>{
+  if(!noteTitle.value||!noteBody.value) return;
   await addDoc(collection(db,"users",uid,"notes"),{
     title:noteTitle.value,
     body:noteBody.value
   });
   noteTitle.value="";
   noteBody.value="";
-  loadAll();
 };
 
-/* ADD TASK */
-addTask.onclick = async ()=>{
+function loadNotes(){
+  onSnapshot(collection(db,"users",uid,"notes"),snap=>{
+    notesList.innerHTML="";
+    snap.forEach(d=>{
+      const n=d.data();
+      const div=document.createElement("div");
+      div.innerHTML=`
+        <strong>${n.title}</strong>
+        <button class="small">Delete</button>
+        <p>${n.body}</p>
+      `;
+      div.querySelector("button").onclick=()=>deleteDoc(doc(db,"users",uid,"notes",d.id));
+      notesList.appendChild(div);
+    });
+  });
+}
+
+/* TASKS */
+addTask.onclick=async()=>{
   if(!taskInput.value) return;
   await addDoc(collection(db,"users",uid,"tasks"),{
     text:taskInput.value,
     done:false
   });
   taskInput.value="";
-  loadAll();
 };
 
-/* LOAD EVERYTHING ONCE */
-async function loadAll(){
-  await Promise.all([
-    loadNotes(),
-    loadTasks(),
-    loadSubjectsAndLessons()
-  ]);
-}
-
-/* NOTES */
-async function loadNotes(){
-  notesDiv.innerHTML="";
-  const snap = await getDocs(collection(db,"users",uid,"notes"));
-  snap.forEach(d=>{
-    const n=d.data();
-    const div=document.createElement("div");
-    div.innerHTML=`<strong>${n.title}</strong><p>${n.body||""}</p>`;
-    const del=document.createElement("button");
-    del.textContent="Delete";
-    del.className="small";
-    del.onclick=async()=>{
-      await deleteDoc(doc(db,"users",uid,"notes",d.id));
-      loadAll();
-    };
-    div.appendChild(del);
-    notesDiv.appendChild(div);
-  });
-}
-
-/* TASKS */
-async function loadTasks(){
-  tasksDiv.innerHTML="";
-  const snap = await getDocs(collection(db,"users",uid,"tasks"));
-  let done=0;
-  snap.forEach(d=>{
-    const t=d.data();
-    if(t.done) done++;
-    const row=document.createElement("div");
-
-    const cb=document.createElement("input");
-    cb.type="checkbox";
-    cb.checked=t.done;
-    cb.onchange=async()=>{
-      await updateDoc(doc(db,"users",uid,"tasks",d.id),{done:cb.checked});
-      loadAll();
-    };
-
-    const del=document.createElement("button");
-    del.textContent="X";
-    del.className="small";
-    del.onclick=async()=>{
-      await deleteDoc(doc(db,"users",uid,"tasks",d.id));
-      loadAll();
-    };
-
-    row.append(cb," "+t.text+" ",del);
-    tasksDiv.appendChild(row);
-  });
-
-  const total=snap.size;
-  const pct=total?Math.round(done/total*100):0;
-  tasksProgress.innerHTML=`
-    ${done}/${total} completed (${pct}%)
-    <div class="progress"><div style="width:${pct}%"></div></div>
-  `;
-}
-
-/* SUBJECTS → LESSONS → AUTO MASTERY */
-async function loadSubjectsAndLessons(){
-  subjectsDiv.innerHTML="";
-  lessonsDiv.innerHTML="";
-
-  const subjectsSnap = await getDocs(collection(db,"users",uid,"subjects"));
-
-  for(const subj of subjectsSnap.docs){
-    const sid=subj.id;
-    const s=subj.data();
-
-    const lessonsSnap = await getDocs(
-      collection(db,"users",uid,"subjects",sid,"lessons")
-    );
-
+function loadTasks(){
+  onSnapshot(collection(db,"users",uid,"tasks"),snap=>{
+    tasksList.innerHTML="";
     let done=0;
-    lessonsSnap.forEach(l=>{
-      if(l.data().completed) done++;
+    snap.forEach(d=>{
+      const t=d.data();
+      if(t.done) done++;
       const row=document.createElement("div");
-      row.className="lesson"+(l.data().completed?" done":"");
-
-      const cb=document.createElement("input");
-      cb.type="checkbox";
-      cb.checked=l.data().completed;
-      cb.onchange=async()=>{
-        await updateDoc(
-          doc(db,"users",uid,"subjects",sid,"lessons",l.id),
-          {completed:cb.checked}
-        );
-        loadAll();
+      row.innerHTML=`
+        <input type="checkbox" ${t.done?"checked":""}>
+        ${t.text}
+        <button class="small">X</button>
+      `;
+      row.querySelector("input").onchange=e=>{
+        updateDoc(doc(db,"users",uid,"tasks",d.id),{done:e.target.checked});
       };
-
-      row.append(cb,`${s.name}: ${l.data().title}`);
-      lessonsDiv.appendChild(row);
+      row.querySelector("button").onclick=()=>{
+        deleteDoc(doc(db,"users",uid,"tasks",d.id));
+      };
+      tasksList.appendChild(row);
     });
-
-    const total=lessonsSnap.size;
-    const pct=total?Math.round(done/total*100):0;
-
-    const box=document.createElement("div");
-    box.innerHTML=`
-      <strong>${s.name}</strong> – ${pct}%
-      <div class="progress"><div style="width:${pct}%"></div></div>
+    let total=snap.size;
+    let percent=total?Math.round(done/total*100):0;
+    tasksMastery.innerHTML=`
+      ${done}/${total} completed (${percent}%)
+      <div class="progress"><div style="width:${percent}%"></div></div>
     `;
-    subjectsDiv.appendChild(box);
-  }
+  });
 }
 
-/* INIT */
-loadAll();
+/* SUBJECTS MASTERY */
+function loadSubjectsMastery(){
+  onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
+    subjectsMastery.innerHTML="";
+    snap.forEach(s=>{
+      const sid=s.id;
+      const name=s.data().name;
+      onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
+        let done=0;
+        ls.forEach(l=>{if(l.data().completed) done++;});
+        let total=ls.size;
+        let percent=total?Math.round(done/total*100):0;
+        subjectsMastery.innerHTML+=`
+          <div>
+            <strong>${name}</strong> – ${percent}%
+            <div class="progress"><div style="width:${percent}%"></div></div>
+          </div>
+        `;
+      });
+    });
+  });
+}
+
+/* LESSONS QUICK */
+function loadLessons(){
+  onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
+    lessonsList.innerHTML="";
+    snap.forEach(s=>{
+      const sid=s.id;
+      const sname=s.data().name;
+      onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
+        ls.forEach(l=>{
+          const d=l.data();
+          const row=document.createElement("div");
+          row.className="lesson"+(d.completed?" done":"");
+          row.innerHTML=`
+            <input type="checkbox" ${d.completed?"checked":""}>
+            ${sname}: ${d.title}
+          `;
+          row.querySelector("input").onchange=e=>{
+            updateDoc(doc(db,"users",uid,"subjects",sid,"lessons",l.id),{
+              completed:e.target.checked
+            });
+          };
+          lessonsList.appendChild(row);
+        });
+      });
+    });
+  });
+}
 </script>
 
 </body>

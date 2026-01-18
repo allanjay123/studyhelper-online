@@ -11,6 +11,18 @@ body{
   font-family:Arial;
   background:linear-gradient(135deg,#667eea,#764ba2);
 }
+
+/* HIDE UNTIL READY */
+body.loading .container,
+body.loading header{
+  opacity:0;
+}
+body.ready .container,
+body.ready header{
+  opacity:1;
+  transition:opacity .3s ease;
+}
+
 header{
   background:#fff;
   padding:10px 20px;
@@ -18,6 +30,7 @@ header{
   justify-content:space-between;
   align-items:center;
 }
+
 .container{
   max-width:1100px;
   margin:20px auto;
@@ -26,16 +39,19 @@ header{
   grid-template-columns:2fr 1fr;
   gap:15px;
 }
+
 .card{
   background:#fff;
   padding:15px;
   border-radius:10px;
 }
+
 input,textarea{
   width:100%;
   padding:8px;
   margin-bottom:8px;
 }
+
 button{
   padding:6px 10px;
   border:none;
@@ -44,31 +60,35 @@ button{
   background:#4caf50;
   color:white;
 }
+
 .small{
   background:red;
   font-size:12px;
-  margin-left:5px;
+  margin-left:6px;
 }
+
 .progress{
   height:8px;
   background:#ddd;
   border-radius:5px;
   overflow:hidden;
-  margin-top:5px;
+  margin-top:4px;
 }
 .progress div{
   height:100%;
   background:#4caf50;
 }
+
 .lesson{
   display:flex;
   align-items:center;
   gap:6px;
+  margin-bottom:4px;
 }
 </style>
 </head>
 
-<body>
+<body class="loading">
 
 <header>
   <strong>StudyHelper</strong>
@@ -81,10 +101,7 @@ button{
 
 <div class="container">
 
-  <!-- LEFT -->
   <div>
-
-    <!-- ADD NOTE -->
     <div class="card">
       <h3>Add Note</h3>
       <input id="noteTitle" placeholder="Title">
@@ -92,13 +109,11 @@ button{
       <button id="saveNote">Save Note</button>
     </div>
 
-    <!-- NOTES -->
     <div class="card">
       <h3>Your Notes</h3>
       <div id="notesList"></div>
     </div>
 
-    <!-- TASKS -->
     <div class="card">
       <h3>Tasks</h3>
       <input id="taskInput" placeholder="New task">
@@ -106,29 +121,22 @@ button{
       <div id="tasksList"></div>
     </div>
 
-    <!-- LESSONS -->
     <div class="card">
       <h3>Lessons</h3>
       <div id="lessonsList"></div>
     </div>
-
   </div>
 
-  <!-- RIGHT -->
   <div>
-
-    <!-- SUBJECTS MASTERY -->
     <div class="card">
       <h3>📊 Subjects Mastery</h3>
       <div id="subjectsMastery"></div>
     </div>
 
-    <!-- TASKS PROGRESS -->
     <div class="card">
       <h3>✅ Tasks Progress</h3>
       <div id="tasksMastery"></div>
     </div>
-
   </div>
 
 </div>
@@ -149,6 +157,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 let uid=null;
+let loaded={notes:false,tasks:false,subjects:false,lessons:false};
 
 const notesList=document.getElementById("notesList");
 const tasksList=document.getElementById("tasksList");
@@ -157,7 +166,7 @@ const subjectsMastery=document.getElementById("subjectsMastery");
 const tasksMastery=document.getElementById("tasksMastery");
 
 onAuthStateChanged(auth,user=>{
-  if(!user) location.href="index.html";
+  if(!user) return location.href="index.html";
   uid=user.uid;
   loadNotes();
   loadTasks();
@@ -166,6 +175,14 @@ onAuthStateChanged(auth,user=>{
 });
 
 logout.onclick=()=>signOut(auth);
+
+/* READY CHECK */
+function checkReady(){
+  if(Object.values(loaded).every(v=>v)){
+    document.body.classList.remove("loading");
+    document.body.classList.add("ready");
+  }
+}
 
 saveNote.onclick=()=>addDoc(collection(db,"users",uid,"notes"),{
   title:noteTitle.value,
@@ -177,9 +194,10 @@ addTask.onclick=()=>addDoc(collection(db,"users",uid,"tasks"),{
   done:false
 });
 
+/* NOTES */
 function loadNotes(){
   onSnapshot(collection(db,"users",uid,"notes"),snap=>{
-    notesList.innerHTML="";
+    const frag=document.createDocumentFragment();
     snap.forEach(d=>{
       const n=d.data();
       const div=document.createElement("div");
@@ -189,14 +207,17 @@ function loadNotes(){
       del.className="small";
       del.onclick=()=>deleteDoc(doc(db,"users",uid,"notes",d.id));
       div.appendChild(del);
-      notesList.appendChild(div);
+      frag.appendChild(div);
     });
+    notesList.replaceChildren(frag);
+    loaded.notes=true; checkReady();
   });
 }
 
+/* TASKS */
 function loadTasks(){
   onSnapshot(collection(db,"users",uid,"tasks"),snap=>{
-    tasksList.innerHTML="";
+    const frag=document.createDocumentFragment();
     let done=0;
     snap.forEach(d=>{
       const t=d.data();
@@ -211,31 +232,37 @@ function loadTasks(){
       del.className="small";
       del.onclick=()=>deleteDoc(doc(db,"users",uid,"tasks",d.id));
       row.append(cb," "+t.text+" ",del);
-      tasksList.appendChild(row);
+      frag.appendChild(row);
     });
+    tasksList.replaceChildren(frag);
+
     const total=snap.size;
     const percent=total?Math.round(done/total*100):0;
     tasksMastery.innerHTML=`${done}/${total} completed (${percent}%)<div class="progress"><div style="width:${percent}%"></div></div>`;
+
+    loaded.tasks=true; checkReady();
   });
 }
 
+/* SUBJECTS */
 function loadSubjects(){
   onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
-    subjectsMastery.innerHTML="";
+    const frag=document.createDocumentFragment();
     snap.forEach(d=>{
       const s=d.data();
-      subjectsMastery.innerHTML+=`
-        <div>
-          ${s.name} – ${s.mastery||0}%
-          <div class="progress"><div style="width:${s.mastery||0}%"></div></div>
-        </div>`;
+      const div=document.createElement("div");
+      div.innerHTML=`${s.name} – ${s.mastery||0}%<div class="progress"><div style="width:${s.mastery||0}%"></div></div>`;
+      frag.appendChild(div);
     });
+    subjectsMastery.replaceChildren(frag);
+    loaded.subjects=true; checkReady();
   });
 }
 
+/* LESSONS */
 function loadLessons(){
   onSnapshot(collection(db,"users",uid,"lessons"),snap=>{
-    lessonsList.innerHTML="";
+    const frag=document.createDocumentFragment();
     snap.forEach(d=>{
       const l=d.data();
       const row=document.createElement("div");
@@ -245,8 +272,10 @@ function loadLessons(){
       cb.checked=l.done;
       cb.onchange=()=>updateDoc(doc(db,"users",uid,"lessons",d.id),{done:cb.checked});
       row.append(cb,l.subject+" – "+l.title);
-      lessonsList.appendChild(row);
+      frag.appendChild(row);
     });
+    lessonsList.replaceChildren(frag);
+    loaded.lessons=true; checkReady();
   });
 }
 </script>

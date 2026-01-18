@@ -210,31 +210,44 @@ addTask.onclick=async()=>{
 };
 
 function loadTasks(){
-  onSnapshot(collection(db,"users",uid,"tasks"),snap=>{
-    tasksList.innerHTML="";
-    let done=0;
-    snap.forEach(d=>{
-      const t=d.data();
-      if(t.done) done++;
-      const row=document.createElement("div");
-      row.innerHTML=`
-        <input type="checkbox" ${t.done?"checked":""}>
+  onSnapshot(collection(db,"users",uid,"tasks"), snap => {
+    tasksList.innerHTML = "";
+
+    let done = 0;
+    let total = snap.size;
+
+    snap.forEach(d => {
+      const t = d.data();
+      if (t.done) done++;
+
+      const row = document.createElement("div");
+      row.innerHTML = `
+        <input type="checkbox" ${t.done ? "checked" : ""}>
         ${t.text}
         <button class="small">X</button>
       `;
-      row.querySelector("input").onchange=e=>{
-        updateDoc(doc(db,"users",uid,"tasks",d.id),{done:e.target.checked});
+
+      row.querySelector("input").onchange = e => {
+        updateDoc(doc(db,"users",uid,"tasks",d.id), {
+          done: e.target.checked
+        });
       };
-      row.querySelector("button").onclick=()=>{
+
+      row.querySelector("button").onclick = () => {
         deleteDoc(doc(db,"users",uid,"tasks",d.id));
       };
+
       tasksList.appendChild(row);
     });
-    let total=snap.size;
-    let percent=total?Math.round(done/total*100):0;
-    tasksMastery.innerHTML=`
-      ${done}/${total} completed (${percent}%)
-      <div class="progress"><div style="width:${percent}%"></div></div>
+
+    // ✅ DITO NA KINAKALKULA ANG PROGRESS
+    let percent = total ? Math.round((done / total) * 100) : 0;
+
+    tasksMastery.innerHTML = `
+      <strong>${done}/${total}</strong> completed (${percent}%)
+      <div class="progress">
+        <div style="width:${percent}%"></div>
+      </div>
     `;
   });
 }

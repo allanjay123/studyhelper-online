@@ -64,7 +64,7 @@ button.delete{
   background:#4caf50;
   height:100%;
 }
-.task.done{
+.task.done,.lesson.done{
   text-decoration:line-through;
   color:#777;
 }
@@ -149,21 +149,24 @@ addTask.onclick=async()=>{
   if(!taskInput.value) return;
   await addDoc(collection(db,"users",uid,"tasks"),{
     text:taskInput.value,
-    done:false   // 🔑 CRITICAL
+    done:false   // 🔑 ALWAYS BOOLEAN
   });
   taskInput.value="";
 };
 
-/* TASKS + PROGRESS (FINAL FIX) */
+/* TASKS + FINAL PROGRESS FIX */
 function loadTasks(){
-  onSnapshot(collection(db,"users",uid,"tasks"),snap=>{
+  onSnapshot(collection(db,"users",uid,"tasks"), snap=>{
     tasksList.innerHTML="";
-    let doneCount=0;
-    let total=snap.size;
+
+    let doneCount = 0;
+    let total = snap.size;
 
     snap.forEach(d=>{
       const t=d.data();
-      const isDone = t.done === true; // 🔑 FIX
+
+      // 🔑 FORCE BOOLEAN (FIX)
+      const isDone = t.done === true;
 
       if(isDone) doneCount++;
 
@@ -173,9 +176,10 @@ function loadTasks(){
       const cb=document.createElement("input");
       cb.type="checkbox";
       cb.checked=isDone;
-      cb.onchange=()=>updateDoc(doc(db,"users",uid,"tasks",d.id),{
-        done:cb.checked
-      });
+      cb.onchange=()=>updateDoc(
+        doc(db,"users",uid,"tasks",d.id),
+        { done: cb.checked }
+      );
 
       const del=document.createElement("button");
       del.textContent="X";
@@ -186,7 +190,9 @@ function loadTasks(){
       tasksList.appendChild(row);
     });
 
-    const percent = total > 0 ? Math.round((doneCount/total)*100) : 0;
+    const percent = total > 0
+      ? Math.round((doneCount / total) * 100)
+      : 0;
 
     tasksMastery.innerHTML=`
       <strong>${doneCount}/${total} completed (${percent}%)</strong>

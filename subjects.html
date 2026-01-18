@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>StudyHelper | Subject Mastery</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  min-height:100vh;
+}
+header{
+  background:#fff;
+  padding:15px 20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.container{
+  max-width:900px;
+  margin:20px auto;
+  background:#fff;
+  padding:20px;
+  border-radius:12px;
+}
+.subject{
+  margin-bottom:20px;
+}
+.bar-bg{
+  background:#eee;
+  border-radius:20px;
+  overflow:hidden;
+  height:18px;
+}
+.bar{
+  height:100%;
+  width:0%;
+  background:#4caf50;
+  transition:0.4s;
+}
+.percent{
+  font-weight:bold;
+  margin-left:10px;
+}
+.low{background:#f44336;}
+.mid{background:#ffc107;}
+.high{background:#4caf50;}
+button{
+  padding:8px 12px;
+  border:none;
+  border-radius:5px;
+  background:#667eea;
+  color:#fff;
+  cursor:pointer;
+}
+input{
+  padding:8px;
+  margin-right:5px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <strong>📊 Subject Mastery</strong>
+  <button onclick="location.href='home.html'">⬅ Back</button>
+</header>
+
+<div class="container">
+
+<h2>Add Subject</h2>
+<input id="subjectName" placeholder="Subject name">
+<button id="addSubject">Add</button>
+
+<hr>
+
+<div id="subjects"></div>
+
+</div>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* 🔥 USE YOUR OWN FIREBASE CONFIG */
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const subjectsDiv = document.getElementById("subjects");
+const addBtn = document.getElementById("addSubject");
+
+let currentUserUID = null;
+
+/* 🔐 AUTH */
+onAuthStateChanged(auth, user => {
+  if (!user) {
+    location.href = "index.html";
+  } else {
+    currentUserUID = user.uid;
+    loadSubjects();
+  }
+});
+
+/* ➕ ADD SUBJECT */
+addBtn.addEventListener("click", async () => {
+  const name = subjectName.value.trim();
+  if (!name) return;
+
+  await addDoc(collection(db,"users",currentUserUID,"subjects"),{
+    name,
+    tasksDone:0,
+    tasksTotal:0,
+    notesCount:0,
+    studyMinutes:0,
+    missedTasks:0
+  });
+
+  subjectName.value="";
+});
+
+/* 📊 CALCULATE MASTERY */
+function calcMastery(s){
+  let score =
+    (s.tasksTotal ? (s.tasksDone/s.tasksTotal)*40 : 0) +
+    Math.min((s.notesCount/10)*20,20) +
+    Math.min((s.studyMinutes/300)*20,20) -
+    (s.missedTasks*5);
+
+  return Math.max(0,Math.min(100,Math.round(score)));
+}
+
+/* 📥 LOAD SUBJECTS */
+function loadSubjects(){
+  const ref = collection(db,"users",currentUserUID,"subjects");
+
+  onSnapshot(ref,snap=>{
+    subjectsDiv.innerHTML="";
+    snap.forEach(docSnap=>{
+      const s = docSnap.data();
+      const mastery = calcMastery(s);
+
+      let level="high";
+      if(mastery<50) level="low";
+      else if(mastery<80) level="mid";
+
+      subjectsDiv.innerHTML += `
+        <div class="subject">
+          <strong>${s.name}</strong>
+          <div class="bar-bg">
+            <div class="bar ${level}" style="width:${mastery}%"></div>
+          </div>
+          <span class="percent">${mastery}%</span>
+        </div>
+      `;
+    });
+  });
+}
+</script>
+
+</body>
+</html>

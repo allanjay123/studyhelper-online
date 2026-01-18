@@ -49,7 +49,7 @@ button{
   cursor:pointer;
 }
 button.small{
-  padding:4px 8px;
+  padding:5px 8px;
   font-size:12px;
   background:#f44336;
   margin-left:6px;
@@ -59,7 +59,6 @@ button.small{
   height:8px;
   border-radius:5px;
   overflow:hidden;
-  margin-top:5px;
 }
 .progress div{
   background:#4caf50;
@@ -190,33 +189,21 @@ function loadNotes(){
   onSnapshot(collection(db,"users",uid,"notes"), snap=>{
     notesList.innerHTML="";
     snap.forEach(d=>{
-      const n=d.data();
       const div=document.createElement("div");
-      div.innerHTML=`
-        <strong>${n.title}</strong>
-        <button class="small">Delete</button>
-        <p>${n.body}</p>
-      `;
-      div.querySelector("button").onclick=()=>{
-        deleteDoc(doc(db,"users",uid,"notes",d.id));
-      };
+      div.innerHTML=`<strong>${d.data().title}</strong><p>${d.data().body}</p>`;
+
+      const del=document.createElement("button");
+      del.textContent="Delete";
+      del.className="small";
+      del.onclick=()=>deleteDoc(doc(db,"users",uid,"notes",d.id));
+
+      div.appendChild(del);
       notesList.appendChild(div);
     });
   });
 }
 
-/* TASK PROGRESS RENDER */
-function renderTaskProgress(done,total){
-  const percent = total===0 ? 0 : Math.round((done/total)*100);
-  tasksMastery.innerHTML=`
-    <strong>${done}/${total} completed (${percent}%)</strong>
-    <div class="progress">
-      <div style="width:${percent}%"></div>
-    </div>
-  `;
-}
-
-/* TASKS */
+/* TASKS + PROGRESS */
 addTask.onclick = async ()=>{
   if(!taskInput.value) return;
   await addDoc(collection(db,"users",uid,"tasks"),{
@@ -241,24 +228,22 @@ function loadTasks(){
       const cb=document.createElement("input");
       cb.type="checkbox";
       cb.checked=t.done;
-      cb.onchange=()=>{
-        updateDoc(doc(db,"users",uid,"tasks",d.id),{
-          done:cb.checked
-        });
-      };
+      cb.onchange=()=>updateDoc(doc(db,"users",uid,"tasks",d.id),{done:cb.checked});
 
       const del=document.createElement("button");
       del.textContent="X";
       del.className="small";
-      del.onclick=()=>{
-        deleteDoc(doc(db,"users",uid,"tasks",d.id));
-      };
+      del.onclick=()=>deleteDoc(doc(db,"users",uid,"tasks",d.id));
 
       row.append(cb," ",t.text,del);
       tasksList.appendChild(row);
     });
 
-    renderTaskProgress(done,total);
+    const percent = total?Math.round((done/total)*100):0;
+    tasksMastery.innerHTML=`
+      <strong>${done}/${total} completed (${percent}%)</strong>
+      <div class="progress"><div style="width:${percent}%"></div></div>
+    `;
   });
 }
 
@@ -271,7 +256,7 @@ function loadSubjectsMastery(){
         let done=0;
         ls.forEach(l=>{ if(l.data().completed) done++; });
         const total=ls.size;
-        const percent= total?Math.round(done/total*100):0;
+        const percent=total?Math.round(done/total*100):0;
         subjectsMastery.innerHTML+=`
           <div>
             <strong>${s.data().name}</strong> – ${percent}%
@@ -296,11 +281,7 @@ function loadLessons(){
           const cb=document.createElement("input");
           cb.type="checkbox";
           cb.checked=d.completed;
-          cb.onchange=()=>{
-            updateDoc(doc(db,"users",uid,"subjects",s.id,"lessons",l.id),{
-              completed:cb.checked
-            });
-          };
+          cb.onchange=()=>updateDoc(doc(db,"users",uid,"subjects",s.id,"lessons",l.id),{completed:cb.checked});
           row.append(cb,`${s.data().name}: ${d.title}`);
           lessonsList.appendChild(row);
         });

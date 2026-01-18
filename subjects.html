@@ -1,110 +1,167 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>StudyHelper | Subjects</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>Subjects</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg,#667eea,#764ba2);
-      min-height: 100vh;
-    }
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  min-height:100vh;
+  color:#fff;
+}
 
-    header {
-      background: white;
-      padding: 10px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:15px;
+  background:rgba(255,255,255,0.1);
+}
 
-    .container {
-      max-width: 900px;
-      margin: auto;
-      padding: 20px;
-    }
+button{
+  border:none;
+  padding:8px 14px;
+  border-radius:6px;
+  cursor:pointer;
+}
 
-    .card {
-      background: white;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 15px;
-    }
+.add-btn{
+  background:#4CAF50;
+  color:#fff;
+}
 
-    button {
-      padding: 8px 12px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      background: #667eea;
-      color: white;
-    }
-  </style>
+.container{
+  padding:15px;
+}
+
+.subject{
+  background:#fff;
+  color:#333;
+  padding:12px;
+  border-radius:8px;
+  margin-bottom:10px;
+  font-weight:bold;
+}
+
+.empty{
+  background:#fff;
+  color:#666;
+  padding:12px;
+  border-radius:8px;
+  text-align:center;
+}
+
+/* Modal */
+.modal{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.4);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+
+.modal-content{
+  background:#fff;
+  color:#333;
+  padding:20px;
+  width:90%;
+  max-width:320px;
+  border-radius:10px;
+}
+
+.modal-content input{
+  width:100%;
+  padding:8px;
+  margin-top:10px;
+}
+
+.save-btn{
+  background:#667eea;
+  color:#fff;
+  width:100%;
+  margin-top:15px;
+}
+</style>
 </head>
 
 <body>
 
 <header>
-  <strong>📚 Subjects</strong>
-  <button onclick="location.href='home.html'">⬅ Back</button>
+  <h3>📘 Subjects</h3>
+  <button class="add-btn" onclick="openModal()">＋ Add</button>
 </header>
 
-<div class="container">
-  <div id="subjectsList"></div>
+<div class="container" id="subjectList">
+  <!-- subjects here -->
 </div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-  import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <h3>Add Subject</h3>
+    <input id="subjectName" placeholder="e.g. Math">
+    <button class="save-btn" onclick="addSubject()">Save</button>
+  </div>
+</div>
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
-    authDomain: "studyhelper-app.firebaseapp.com",
-    projectId: "studyhelper-app",
-    storageBucket: "studyhelper-app.appspot.com",
-    messagingSenderId: "390954392930",
-    appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
-  };
+<script>
+let subjects = JSON.parse(localStorage.getItem("subjects")) || [];
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+function saveSubjects(){
+  localStorage.setItem("subjects", JSON.stringify(subjects));
+}
 
-  const list = document.getElementById("subjectsList");
+function loadSubjects(){
+  const list = document.getElementById("subjectList");
+  list.innerHTML = "";
 
-  onAuthStateChanged(auth, user => {
-    if (!user) {
-      window.location.href = "index.html";
-      return;
-    }
+  if(subjects.length === 0){
+    list.innerHTML = `<div class="empty">No subjects yet</div>`;
+    return;
+  }
 
-    const ref = collection(db, "users", user.uid, "subjects");
-
-    onSnapshot(ref, snap => {
-      list.innerHTML = "";
-
-      if (snap.empty) {
-        list.innerHTML = "<div class='card'>No subjects yet</div>";
-        return;
-      }
-
-      snap.forEach(d => {
-        const s = d.data();
-        list.innerHTML += `
-          <div class="card">
-            <h3>${s.name}</h3>
-            <p>Tasks done: ${s.tasksDone || 0}/${s.tasksTotal || 0}</p>
-            <p>Study minutes: ${s.studyMinutes || 0}</p>
-            <p>Missed tasks: ${s.missedTasks || 0}</p>
-          </div>
-        `;
-      });
-    });
+  subjects.forEach(sub=>{
+    const div = document.createElement("div");
+    div.className = "subject";
+    div.textContent = sub.name;
+    list.appendChild(div);
   });
+}
+
+function openModal(){
+  document.getElementById("modal").style.display="flex";
+}
+
+function closeModal(){
+  document.getElementById("modal").style.display="none";
+  document.getElementById("subjectName").value="";
+}
+
+function addSubject(){
+  const name = document.getElementById("subjectName").value.trim();
+  if(!name) return alert("Enter subject name");
+
+  subjects.push({
+    id:Date.now(),
+    name:name,
+    mastery:0
+  });
+
+  saveSubjects();
+  loadSubjects();
+  closeModal();
+}
+
+/* init */
+loadSubjects();
 </script>
 
 </body>

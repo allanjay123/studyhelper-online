@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>StudyHelper</title>
+<title>StudyHelper | Home</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -11,100 +11,84 @@ body{
   font-family:Arial;
   background:linear-gradient(135deg,#667eea,#764ba2);
 }
-
-/* LOADING SCREEN */
-#loading{
-  position:fixed;
-  inset:0;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  color:white;
-  font-size:18px;
-}
-
-/* APP HIDDEN UNTIL READY */
-#app{
-  display:none;
-}
-
-/* UI */
 header{
   background:#fff;
-  padding:10px 20px;
+  padding:12px 20px;
   display:flex;
   justify-content:space-between;
   align-items:center;
 }
-
 .container{
   max-width:1100px;
   margin:20px auto;
   padding:20px;
   display:grid;
   grid-template-columns:2fr 1fr;
-  gap:15px;
+  gap:16px;
 }
-
 .card{
   background:#fff;
   padding:15px;
   border-radius:10px;
 }
-
 input,textarea{
   width:100%;
   padding:8px;
   margin-bottom:8px;
 }
-
 button{
-  padding:6px 10px;
+  padding:7px 12px;
   border:none;
-  border-radius:5px;
+  border-radius:6px;
+  cursor:pointer;
   background:#4caf50;
   color:white;
-  cursor:pointer;
 }
-
 .small{
-  background:red;
+  background:#f44336;
   font-size:12px;
   margin-left:6px;
 }
-
 .progress{
   height:8px;
   background:#ddd;
   border-radius:5px;
   overflow:hidden;
+  margin-top:4px;
 }
 .progress div{
   height:100%;
   background:#4caf50;
+}
+.lesson{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-bottom:4px;
+}
+.lesson.done{
+  text-decoration:line-through;
+  color:#777;
 }
 </style>
 </head>
 
 <body>
 
-<!-- LOADING -->
-<div id="loading">Loading StudyHelper…</div>
-
-<!-- APP -->
-<div id="app">
-
 <header>
   <strong>StudyHelper</strong>
   <div>
     <button onclick="location.href='subjects.html'">📚 Subjects</button>
+    <button onclick="location.href='calendar.html'">📅 Calendar</button>
     <button id="logout">Logout</button>
   </div>
 </header>
 
 <div class="container">
 
+  <!-- LEFT -->
   <div>
+
     <div class="card">
       <h3>Add Note</h3>
       <input id="noteTitle" placeholder="Title">
@@ -123,23 +107,45 @@ button{
       <button id="addTask">Add Task</button>
       <div id="tasks"></div>
     </div>
-  </div>
 
-  <div>
     <div class="card">
-      <h3>📊 Mastery</h3>
-      <div id="mastery"></div>
+      <h3>Lessons</h3>
+      <div id="lessons"></div>
     </div>
+
   </div>
 
-</div>
+  <!-- RIGHT -->
+  <div>
+
+    <div class="card">
+      <h3>📊 Subjects Mastery</h3>
+      <div id="subjectsMastery"></div>
+    </div>
+
+    <div class="card">
+      <h3>✅ Tasks Progress</h3>
+      <div id="tasksProgress"></div>
+    </div>
+
+  </div>
+
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  updateDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
+/* 🔥 FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyCkY...",
   authDomain: "studyhelper-app.firebaseapp.com",
@@ -150,92 +156,161 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* 🔥 PREVENT AUTH FLASH */
-await setPersistence(auth, browserLocalPersistence);
+const uid = auth.currentUser.uid; // SAFE (auth-gate)
 
-const loading = document.getElementById("loading");
-const appUI = document.getElementById("app");
+/* ELEMENTS */
+const notesDiv = notes;
+const tasksDiv = tasks;
+const lessonsDiv = lessons;
+const subjectsDiv = subjectsMastery;
+const tasksProgress = document.getElementById("tasksProgress");
 
-let uid;
+/* LOGOUT */
+logout.onclick = async ()=>{
+  await signOut(auth);
+  location.replace("index.html");
+};
 
-/* AUTH GATE */
-onAuthStateChanged(auth, async user=>{
-  if(!user){
-    location.href="index.html";
-    return;
-  }
+/* ADD NOTE */
+saveNote.onclick = async ()=>{
+  if(!noteTitle.value || !noteBody.value) return;
+  await addDoc(collection(db,"users",uid,"notes"),{
+    title:noteTitle.value,
+    body:noteBody.value
+  });
+  noteTitle.value="";
+  noteBody.value="";
+  loadAll();
+};
 
-  uid = user.uid;
+/* ADD TASK */
+addTask.onclick = async ()=>{
+  if(!taskInput.value) return;
+  await addDoc(collection(db,"users",uid,"tasks"),{
+    text:taskInput.value,
+    done:false
+  });
+  taskInput.value="";
+  loadAll();
+};
 
-  /* LOAD DATA ONCE (NO SNAPSHOT FLASH) */
-  await loadAll();
-
-  /* SHOW UI ONLY ONCE */
-  loading.style.display="none";
-  appUI.style.display="block";
-});
-
-/* LOAD EVERYTHING */
+/* LOAD EVERYTHING ONCE */
 async function loadAll(){
   await Promise.all([
     loadNotes(),
     loadTasks(),
-    loadSubjects()
+    loadSubjectsAndLessons()
   ]);
 }
 
 /* NOTES */
 async function loadNotes(){
+  notesDiv.innerHTML="";
   const snap = await getDocs(collection(db,"users",uid,"notes"));
-  notes.innerHTML="";
   snap.forEach(d=>{
     const n=d.data();
-    notes.innerHTML+=`
-      <div>
-        <strong>${n.title}</strong>
-        <button class="small" onclick="del('notes','${d.id}')">Delete</button>
-      </div>`;
+    const div=document.createElement("div");
+    div.innerHTML=`<strong>${n.title}</strong><p>${n.body||""}</p>`;
+    const del=document.createElement("button");
+    del.textContent="Delete";
+    del.className="small";
+    del.onclick=async()=>{
+      await deleteDoc(doc(db,"users",uid,"notes",d.id));
+      loadAll();
+    };
+    div.appendChild(del);
+    notesDiv.appendChild(div);
   });
 }
 
 /* TASKS */
 async function loadTasks(){
+  tasksDiv.innerHTML="";
   const snap = await getDocs(collection(db,"users",uid,"tasks"));
   let done=0;
-  tasks.innerHTML="";
   snap.forEach(d=>{
     const t=d.data();
     if(t.done) done++;
-    tasks.innerHTML+=`
-      <div>
-        <input type="checkbox" ${t.done?"checked":""}
-          onchange="toggleTask('${d.id}',this.checked)">
-        ${t.text}
-        <button class="small" onclick="del('tasks','${d.id}')">X</button>
-      </div>`;
+    const row=document.createElement("div");
+
+    const cb=document.createElement("input");
+    cb.type="checkbox";
+    cb.checked=t.done;
+    cb.onchange=async()=>{
+      await updateDoc(doc(db,"users",uid,"tasks",d.id),{done:cb.checked});
+      loadAll();
+    };
+
+    const del=document.createElement("button");
+    del.textContent="X";
+    del.className="small";
+    del.onclick=async()=>{
+      await deleteDoc(doc(db,"users",uid,"tasks",d.id));
+      loadAll();
+    };
+
+    row.append(cb," "+t.text+" ",del);
+    tasksDiv.appendChild(row);
   });
 
   const total=snap.size;
   const pct=total?Math.round(done/total*100):0;
-  mastery.innerHTML=`Tasks ${pct}%<div class="progress"><div style="width:${pct}%"></div></div>`;
+  tasksProgress.innerHTML=`
+    ${done}/${total} completed (${pct}%)
+    <div class="progress"><div style="width:${pct}%"></div></div>
+  `;
 }
 
-/* SUBJECTS */
-async function loadSubjects(){
-  const snap = await getDocs(collection(db,"users",uid,"subjects"));
-  snap.forEach(d=>{
-    const s=d.data();
-    mastery.innerHTML+=`
-      ${s.name} – ${s.mastery||0}%
-      <div class="progress"><div style="width:${s.mastery||0}%"></div></div>`;
-  });
+/* SUBJECTS → LESSONS → AUTO MASTERY */
+async function loadSubjectsAndLessons(){
+  subjectsDiv.innerHTML="";
+  lessonsDiv.innerHTML="";
+
+  const subjectsSnap = await getDocs(collection(db,"users",uid,"subjects"));
+
+  for(const subj of subjectsSnap.docs){
+    const sid=subj.id;
+    const s=subj.data();
+
+    const lessonsSnap = await getDocs(
+      collection(db,"users",uid,"subjects",sid,"lessons")
+    );
+
+    let done=0;
+    lessonsSnap.forEach(l=>{
+      if(l.data().completed) done++;
+      const row=document.createElement("div");
+      row.className="lesson"+(l.data().completed?" done":"");
+
+      const cb=document.createElement("input");
+      cb.type="checkbox";
+      cb.checked=l.data().completed;
+      cb.onchange=async()=>{
+        await updateDoc(
+          doc(db,"users",uid,"subjects",sid,"lessons",l.id),
+          {completed:cb.checked}
+        );
+        loadAll();
+      };
+
+      row.append(cb,`${s.name}: ${l.data().title}`);
+      lessonsDiv.appendChild(row);
+    });
+
+    const total=lessonsSnap.size;
+    const pct=total?Math.round(done/total*100):0;
+
+    const box=document.createElement("div");
+    box.innerHTML=`
+      <strong>${s.name}</strong> – ${pct}%
+      <div class="progress"><div style="width:${pct}%"></div></div>
+    `;
+    subjectsDiv.appendChild(box);
+  }
 }
 
-/* ACTIONS */
-window.del=(col,id)=>deleteDoc(doc(db,"users",uid,col,id)).then(loadAll);
-window.toggleTask=(id,val)=>updateDoc(doc(db,"users",uid,"tasks",id),{done:val}).then(loadAll);
-
-logout.onclick=()=>signOut(auth);
+/* INIT */
+loadAll();
 </script>
 
 </body>

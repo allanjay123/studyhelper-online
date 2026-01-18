@@ -53,13 +53,13 @@ button.delete{
   font-size:12px;
   margin-left:6px;
 }
-.task,.lesson{
+.lesson,.task{
   display:flex;
   align-items:center;
   gap:8px;
   margin-bottom:6px;
 }
-.task.done,.lesson.done{
+.lesson.done,.task.done{
   text-decoration:line-through;
   color:#777;
 }
@@ -75,7 +75,9 @@ button.delete{
   height:100%;
 }
 .subject-box{
-  margin-bottom:12px;
+  border-bottom:1px solid #eee;
+  padding-bottom:10px;
+  margin-bottom:10px;
 }
 .subject-header{
   display:flex;
@@ -121,11 +123,6 @@ button.delete{
 <div id="tasksList"></div>
 </div>
 
-<div class="card">
-<h3>📘 Lessons</h3>
-<div id="lessonsList"></div>
-</div>
-
 </div>
 
 <!-- RIGHT -->
@@ -134,6 +131,11 @@ button.delete{
 <div class="card">
 <h3>📊 Subjects Mastery</h3>
 <div id="subjectsMastery"></div>
+</div>
+
+<div class="card">
+<h3>📘 Lessons</h3>
+<div id="lessonsList"></div>
 </div>
 
 </div>
@@ -155,6 +157,7 @@ import {
   getDocs
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
+/* FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
   authDomain: "studyhelper-app.firebaseapp.com",
@@ -177,22 +180,22 @@ onAuthStateChanged(auth,user=>{
 logout.onclick=()=>signOut(auth);
 
 /* NOTES */
-saveNote.onclick=()=>{
-  if(!noteTitle.value) return;
-  addDoc(collection(db,"users",uid,"notes"),{
+saveNote.onclick = async ()=>{
+  if(!noteTitle.value || !noteBody.value) return;
+  await addDoc(collection(db,"users",uid,"notes"),{
     title:noteTitle.value,
     body:noteBody.value
   });
   noteTitle.value="";
   noteBody.value="";
 };
+
 function loadNotes(){
   onSnapshot(collection(db,"users",uid,"notes"),snap=>{
     notesList.innerHTML="";
     snap.forEach(d=>{
-      const n=d.data();
       const div=document.createElement("div");
-      div.innerHTML=`<strong>${n.title}</strong><p>${n.body}</p>`;
+      div.innerHTML=`<strong>${d.data().title}</strong><p>${d.data().body}</p>`;
       const del=document.createElement("button");
       del.textContent="Delete";
       del.className="delete";
@@ -203,15 +206,16 @@ function loadNotes(){
   });
 }
 
-/* TASKS */
-addTask.onclick=()=>{
+/* TASKS (NO PROGRESS) */
+addTask.onclick = async ()=>{
   if(!taskInput.value) return;
-  addDoc(collection(db,"users",uid,"tasks"),{
+  await addDoc(collection(db,"users",uid,"tasks"),{
     text:taskInput.value,
     done:false
   });
   taskInput.value="";
 };
+
 function loadTasks(){
   onSnapshot(collection(db,"users",uid,"tasks"),snap=>{
     tasksList.innerHTML="";
@@ -239,7 +243,7 @@ function loadTasks(){
   });
 }
 
-/* SUBJECTS + LESSONS */
+/* SUBJECTS + LESSONS (DELETE FIXED) */
 function loadSubjects(){
   onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
     subjectsMastery.innerHTML="";
@@ -249,63 +253,71 @@ function loadSubjects(){
       const sid=s.id;
       const sName=s.data().name;
 
-      onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
-        let done=0;
-        let total=ls.size;
+      const box=document.createElement("div");
+      box.className="subject-box";
 
-        const subjectBox=document.createElement("div");
-        subjectBox.className="subject-box";
+      const header=document.createElement("div");
+      header.className="subject-header";
 
-        const header=document.createElement("div");
-        header.className="subject-header";
-        header.innerHTML=`<strong>${sName}</strong>`;
+      const title=document.createElement("strong");
+      title.textContent=sName;
 
-        const delSub=document.createElement("button");
-        delSub.textContent="Delete";
-        delSub.className="delete";
-        delSub.onclick=async()=>{
-          const all=await getDocs(collection(db,"users",uid,"subjects",sid,"lessons"));
-          all.forEach(l=>deleteDoc(l.ref));
-          deleteDoc(doc(db,"users",uid,"subjects",sid));
-        };
+      const delSub=document.createElement("button");
+      delSub.textContent="Delete";
+      delSub.className="delete";
+      delSub.onclick=async()=>{
+        const ls=await getDocs(
+          collection(db,"users",uid,"subjects",sid,"lessons")
+        );
+        ls.forEach(l=>deleteDoc(l.ref));
+        await deleteDoc(doc(db,"users",uid,"subjects",sid));
+      };
 
-        header.appendChild(delSub);
-        subjectBox.appendChild(header);
+      header.append(title,delSub);
+      box.appendChild(header);
 
-        ls.forEach(l=>{
-          const d=l.data();
-          if(d.completed) done++;
+      onSnapshot(
+        collection(db,"users",uid,"subjects",sid,"lessons"),
+        ls=>{
+          let done=0,total=ls.size;
 
-          const row=document.createElement("div");
-          row.className="lesson"+(d.completed?" done":"");
+          ls.forEach(l=>{
+            const d=l.data();
+            if(d.completed) done++;
 
-          const cb=document.createElement("input");
-          cb.type="checkbox";
-          cb.checked=d.completed;
-          cb.onchange=()=>updateDoc(
-            doc(db,"users",uid,"subjects",sid,"lessons",l.id),
-            {completed:cb.checked}
-          );
+            const row=document.createElement("div");
+            row.className="lesson"+(d.completed?" done":"");
 
-          const delL=document.createElement("button");
-          delL.textContent="X";
-          delL.className="delete";
-          delL.onclick=()=>deleteDoc(
-            doc(db,"users",uid,"subjects",sid,"lessons",l.id)
-          );
+            const cb=document.createElement("input");
+            cb.type="checkbox";
+            cb.checked=d.completed;
+            cb.onchange=()=>updateDoc(
+              doc(db,"users",uid,"subjects",sid,"lessons",l.id),
+              {completed:cb.checked}
+            );
 
-          row.append(cb,`${d.title}`,delL);
-          lessonsList.appendChild(row);
-        });
+            const del=document.createElement("button");
+            del.textContent="X";
+            del.className="delete";
+            del.onclick=()=>deleteDoc(
+              doc(db,"users",uid,"subjects",sid,"lessons",l.id)
+            );
 
-        const percent=total?Math.round((done/total)*100):0;
-        subjectBox.innerHTML+=`
-          <div class="progress"><div style="width:${percent}%"></div></div>
-          <small>${percent}% completed</small>
-        `;
+            row.append(cb,`${sName}: ${d.title}`,del);
+            lessonsList.appendChild(row);
+          });
 
-        subjectsMastery.appendChild(subjectBox);
-      });
+          const percent=total?Math.round((done/total)*100):0;
+          const progress=document.createElement("div");
+          progress.className="progress";
+          const bar=document.createElement("div");
+          bar.style.width=percent+"%";
+          progress.appendChild(bar);
+
+          box.appendChild(progress);
+          subjectsMastery.appendChild(box);
+        }
+      );
     });
   });
 }

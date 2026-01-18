@@ -2,69 +2,45 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>StudyHelper | Subjects Mastery</title>
+<title>Subjects</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{
   margin:0;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(135deg,#667eea,#764ba2);
-  min-height:100vh;
+  font-family:Arial;
+  background:linear-gradient(135deg,#667eea,#764ba2);
 }
-
 header{
-  padding:15px;
-  background:#6b73ff;
-  color:white;
+  background:#fff;
+  padding:10px 20px;
   display:flex;
   justify-content:space-between;
   align-items:center;
 }
-
-header button{
-  background:#4CAF50;
-  border:none;
-  color:white;
-  padding:8px 15px;
-  border-radius:5px;
-  cursor:pointer;
-}
-
 .container{
+  max-width:700px;
+  margin:20px auto;
+  padding:20px;
+}
+.card{
+  background:#fff;
   padding:15px;
+  border-radius:10px;
+  margin-bottom:15px;
 }
-
-.subject-card{
-  background:white;
-  padding:12px;
-  border-radius:8px;
-  margin-bottom:12px;
-}
-
-.subject-title{
-  font-weight:bold;
-  margin-bottom:6px;
-}
-
-.progress-bar{
+input{
   width:100%;
-  height:10px;
-  background:#ddd;
-  border-radius:5px;
-  overflow:hidden;
+  padding:10px;
+  margin-bottom:10px;
 }
-
-.progress{
-  height:100%;
-  background:#4CAF50;
-  width:0%;
-}
-
-.percent{
-  font-size:12px;
-  margin-top:5px;
-  text-align:right;
+button{
+  padding:8px 12px;
+  border:none;
+  border-radius:6px;
+  background:#4caf50;
+  color:white;
+  cursor:pointer;
 }
 </style>
 </head>
@@ -72,51 +48,91 @@ header button{
 <body>
 
 <header>
-  <div>📘 Subjects Mastery</div>
-  <button onclick="addSubject()">+ Add</button>
+  <strong>📚 Subjects</strong>
+  <button onclick="location.href='home.html'">⬅ Back</button>
 </header>
 
-<div class="container" id="subjectList"></div>
+<div class="container">
 
-<script>
-let subjects = JSON.parse(localStorage.getItem("subjects")) || [
-  {name:"Math", mastery:40},
-  {name:"English", mastery:70},
-  {name:"Science", mastery:20}
-];
+  <!-- ADD SUBJECT -->
+  <div class="card">
+    <h3>Add Subject</h3>
+    <input id="subjectName" placeholder="Subject name (e.g. Math)">
+    <input id="subjectMastery" type="number" placeholder="Mastery % (0–100)">
+    <button id="addBtn">➕ Add Subject</button>
+  </div>
 
-function renderSubjects(){
-  const list = document.getElementById("subjectList");
-  list.innerHTML = "";
+  <!-- LIST -->
+  <div id="list"></div>
 
-  subjects.forEach(sub=>{
-    list.innerHTML += `
-      <div class="subject-card">
-        <div class="subject-title">${sub.name}</div>
-        <div class="progress-bar">
-          <div class="progress" style="width:${sub.mastery}%"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
+  authDomain: "studyhelper-app.firebaseapp.com",
+  projectId: "studyhelper-app"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let uid = null;
+const list = document.getElementById("list");
+
+onAuthStateChanged(auth, user=>{
+  if(!user){
+    location.href="index.html";
+  }else{
+    uid = user.uid;
+    loadSubjects();
+  }
+});
+
+function loadSubjects(){
+  const ref = collection(db,"users",uid,"subjects");
+
+  onSnapshot(ref, snap=>{
+    list.innerHTML="";
+    if(snap.empty){
+      list.innerHTML="<div class='card'>No subjects yet</div>";
+      return;
+    }
+
+    snap.forEach(d=>{
+      const s = d.data();
+      list.innerHTML += `
+        <div class="card">
+          <strong>${s.name}</strong><br>
+          Mastery: ${s.mastery}%
         </div>
-        <div class="percent">${sub.mastery}% mastery</div>
-      </div>
-    `;
+      `;
+    });
   });
-
-  localStorage.setItem("subjects", JSON.stringify(subjects));
 }
 
-function addSubject(){
-  const name = prompt("Subject name:");
-  if(!name) return;
+document.getElementById("addBtn").onclick = async ()=>{
+  const name = subjectName.value.trim();
+  const mastery = Number(subjectMastery.value);
 
-  subjects.push({
-    name:name,
-    mastery:0
+  if(!name || mastery<0 || mastery>100){
+    alert("Invalid input");
+    return;
+  }
+
+  await addDoc(collection(db,"users",uid,"subjects"),{
+    name,
+    mastery
   });
 
-  renderSubjects();
-}
-
-renderSubjects();
+  subjectName.value="";
+  subjectMastery.value="";
+};
 </script>
 
 </body>

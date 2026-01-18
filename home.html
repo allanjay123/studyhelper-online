@@ -1,85 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>StudyHelper | Home</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<title>StudyHelper | Home</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg,#667eea,#764ba2);
-      min-height: 100vh;
-    }
-
-    header {
-      background: white;
-      padding: 12px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .container {
-      padding: 20px;
-      max-width: 900px;
-      margin: auto;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 20px;
-    }
-
-    .card {
-      background: white;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-    }
-
-    input, textarea {
-      width: 100%;
-      padding: 10px;
-      margin: 6px 0;
-    }
-
-    button {
-      padding: 8px 12px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      background: #667eea;
-      color: white;
-    }
-
-    .note, li {
-      background: #f3f3f3;
-      padding: 10px;
-      border-radius: 6px;
-      margin-top: 8px;
-    }
-
-    .delete {
-      background: red;
-      float: right;
-    }
-
-    .progress {
-      background: #ddd;
-      height: 10px;
-      border-radius: 10px;
-      overflow: hidden;
-      margin: 6px 0;
-    }
-
-    .progress-bar {
-      height: 100%;
-      border-radius: 10px;
-    }
-  </style>
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  min-height:100vh;
+}
+header{
+  background:#fff;
+  padding:10px 20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.container{
+  max-width:1000px;
+  margin:20px auto;
+  padding:20px;
+}
+.grid{
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:20px;
+}
+.card{
+  background:#fff;
+  padding:15px;
+  border-radius:10px;
+  margin-bottom:20px;
+}
+input, textarea{
+  width:100%;
+  padding:10px;
+  margin:6px 0;
+}
+button{
+  padding:8px 12px;
+  border:none;
+  border-radius:6px;
+  background:#667eea;
+  color:white;
+  cursor:pointer;
+}
+.delete{
+  background:red;
+  float:right;
+}
+.progress{
+  background:#ddd;
+  height:10px;
+  border-radius:10px;
+  overflow:hidden;
+}
+.progress div{
+  height:100%;
+}
+li{
+  background:#f3f3f3;
+  padding:10px;
+  border-radius:6px;
+  margin-top:6px;
+}
+@media(max-width:800px){
+  .grid{grid-template-columns:1fr;}
+}
+</style>
 </head>
 
 <body>
@@ -94,6 +85,7 @@
 
 <div class="container">
 
+  <!-- WELCOME -->
   <div class="card">
     <h3>Welcome 🎉</h3>
     <p id="userEmail"></p>
@@ -107,7 +99,7 @@
       <!-- NOTES -->
       <div class="card">
         <h3>Add Note</h3>
-        <input id="title" placeholder="Title" />
+        <input id="title" placeholder="Title">
         <textarea id="content" placeholder="Your note"></textarea>
         <button id="saveBtn">Save Note</button>
       </div>
@@ -120,7 +112,7 @@
       <!-- TASKS -->
       <div class="card">
         <h3>Tasks</h3>
-        <input id="taskInput" placeholder="New task" />
+        <input id="taskInput" placeholder="New task">
         <button id="addTaskBtn">Add Task</button>
         <ul id="taskList"></ul>
       </div>
@@ -130,11 +122,11 @@
     <!-- RIGHT -->
     <div>
 
-      <!-- SUBJECTS MASTERY -->
+      <!-- SUBJECTS -->
       <div class="card">
         <h3>📊 Subjects Mastery</h3>
-        <div id="subjectsPreview"></div>
-        <button onclick="location.href='subjects.html'" style="margin-top:10px;">
+        <div id="subjectsPreview">Loading...</div>
+        <button style="margin-top:10px" onclick="location.href='subjects.html'">
           View All Subjects
         </button>
       </div>
@@ -142,180 +134,151 @@
     </div>
 
   </div>
+
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-  import {
-    getFirestore,
-    collection,
-    addDoc,
-    onSnapshot,
-    deleteDoc,
-    doc,
-    updateDoc,
-    serverTimestamp,
-    query,
-    orderBy
-  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  onSnapshot,
+  deleteDoc,
+  doc,
+  updateDoc,
+  serverTimestamp,
+  query,
+  orderBy
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
-    authDomain: "studyhelper-app.firebaseapp.com",
-    projectId: "studyhelper-app",
-    storageBucket: "studyhelper-app.appspot.com",
-    messagingSenderId: "390954392930",
-    appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
+  authDomain: "studyhelper-app.firebaseapp.com",
+  projectId: "studyhelper-app"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-  const notesDiv = document.getElementById("notes");
-  const userEmail = document.getElementById("userEmail");
-  const taskInput = document.getElementById("taskInput");
-  const addTaskBtn = document.getElementById("addTaskBtn");
-  const taskList = document.getElementById("taskList");
+let uid=null;
 
-  let currentUserUID = null;
+const userEmail=document.getElementById("userEmail");
+const notesDiv=document.getElementById("notes");
+const taskList=document.getElementById("taskList");
+const subjectsPreview=document.getElementById("subjectsPreview");
 
-  // 🔐 AUTH
-  onAuthStateChanged(auth, user => {
-    if (!user) {
-      location.href = "index.html";
-    } else {
-      currentUserUID = user.uid;
-      userEmail.textContent = "Logged in as: " + user.email;
-      loadNotes();
-      loadTasks();
-      loadSubjectsPreview();
-    }
+// AUTH
+onAuthStateChanged(auth,user=>{
+  if(!user){
+    location.href="index.html";
+  }else{
+    uid=user.uid;
+    userEmail.textContent="Logged in as: "+user.email;
+    loadNotes();
+    loadTasks();
+    loadSubjects();
+  }
+});
+
+// NOTES
+function loadNotes(){
+  const ref=query(
+    collection(db,"users",uid,"notes"),
+    orderBy("createdAt","desc")
+  );
+  onSnapshot(ref,snap=>{
+    notesDiv.innerHTML="";
+    snap.forEach(d=>{
+      const n=d.data();
+      notesDiv.innerHTML+=`
+        <div class="card">
+          <strong>${n.title}</strong>
+          <button class="delete" onclick="deleteNote('${d.id}')">Delete</button>
+          <p>${n.content}</p>
+        </div>
+      `;
+    });
   });
+}
+window.deleteNote=id=>{
+  deleteDoc(doc(db,"users",uid,"notes",id));
+};
+saveBtn.onclick=async()=>{
+  if(!title.value||!content.value) return alert("Fill all fields");
+  await addDoc(collection(db,"users",uid,"notes"),{
+    title:title.value,
+    content:content.value,
+    createdAt:serverTimestamp()
+  });
+  title.value="";content.value="";
+};
 
-  // 📝 NOTES
-  function loadNotes() {
-    const ref = query(
-      collection(db, "users", currentUserUID, "notes"),
-      orderBy("createdAt", "desc")
-    );
-
-    onSnapshot(ref, snap => {
-      notesDiv.innerHTML = "";
-      snap.forEach(d => {
-        const n = d.data();
-        notesDiv.innerHTML += `
-          <div class="note">
-            <strong>${n.title}</strong>
-            <button class="delete" onclick="deleteNote('${d.id}')">Delete</button>
-            <p>${n.content}</p>
-          </div>`;
-      });
+// TASKS
+function loadTasks(){
+  const ref=collection(db,"users",uid,"tasks");
+  onSnapshot(ref,snap=>{
+    taskList.innerHTML="";
+    snap.forEach(d=>{
+      const t=d.data();
+      const li=document.createElement("li");
+      li.innerHTML=`
+        <input type="checkbox" ${t.done?"checked":""}>
+        <span style="text-decoration:${t.done?"line-through":"none"}">${t.text}</span>
+        <button class="delete">Delete</button>
+      `;
+      li.querySelector("input").onchange=e=>{
+        updateDoc(doc(db,"users",uid,"tasks",d.id),{done:e.target.checked});
+      };
+      li.querySelector("button").onclick=()=>{
+        deleteDoc(doc(db,"users",uid,"tasks",d.id));
+      };
+      taskList.appendChild(li);
     });
-  }
+  });
+}
+addTaskBtn.onclick=async()=>{
+  if(!taskInput.value) return;
+  await addDoc(collection(db,"users",uid,"tasks"),{
+    text:taskInput.value,
+    done:false,
+    createdAt:serverTimestamp()
+  });
+  taskInput.value="";
+};
 
-  window.deleteNote = id =>
-    deleteDoc(doc(db, "users", currentUserUID, "notes", id));
-
-  document.getElementById("saveBtn").onclick = async () => {
-    const title = titleInput.value;
-    const content = contentInput.value;
-    if (!title || !content) return alert("Fill all fields");
-
-    await addDoc(collection(db, "users", currentUserUID, "notes"), {
-      title, content, createdAt: serverTimestamp()
+// SUBJECTS
+function loadSubjects(){
+  const ref=collection(db,"users",uid,"subjects");
+  onSnapshot(ref,snap=>{
+    subjectsPreview.innerHTML="";
+    if(snap.empty){
+      subjectsPreview.innerHTML="<p>No subjects yet</p>";
+      return;
+    }
+    snap.forEach(d=>{
+      const s=d.data();
+      const m=s.mastery ?? 0;
+      const color=m<50?"#f44336":m<80?"#ffc107":"#4caf50";
+      subjectsPreview.innerHTML+=`
+        <div style="margin-bottom:12px">
+          <strong>${s.name}</strong> – ${m}%
+          <div class="progress">
+            <div style="width:${m}%;background:${color}"></div>
+          </div>
+        </div>
+      `;
     });
+  });
+}
 
-    titleInput.value = "";
-    contentInput.value = "";
-  };
-
-  // ✅ TASKS
-  function loadTasks() {
-    const ref = collection(db, "users", currentUserUID, "tasks");
-
-    onSnapshot(ref, snap => {
-      taskList.innerHTML = "";
-      snap.forEach(d => {
-        const t = d.data();
-        const li = document.createElement("li");
-        li.innerHTML = `
-          <input type="checkbox" ${t.done ? "checked" : ""}>
-          <span style="text-decoration:${t.done ? "line-through" : "none"}">
-            ${t.text}
-          </span>
-          <button class="delete">Delete</button>
-        `;
-
-        li.querySelector("input").onchange = e =>
-          updateDoc(doc(db,"users",currentUserUID,"tasks",d.id),{
-            done: e.target.checked
-          });
-
-        li.querySelector("button").onclick = () =>
-          deleteDoc(doc(db,"users",currentUserUID,"tasks",d.id));
-
-        taskList.appendChild(li);
-      });
-    });
-  }
-
-  addTaskBtn.onclick = async () => {
-    if (!taskInput.value) return;
-    await addDoc(collection(db,"users",currentUserUID,"tasks"),{
-      text: taskInput.value,
-      done:false,
-      createdAt: serverTimestamp()
-    });
-    taskInput.value="";
-  };
-
-  // 📊 SUBJECTS PREVIEW + MASTERY
-  function loadSubjectsPreview() {
-    const ref = collection(db, "users", currentUserUID, "subjects");
-
-    onSnapshot(ref, snap => {
-      const div = document.getElementById("subjectsPreview");
-      div.innerHTML = "";
-
-      if (snap.empty) {
-        div.innerHTML = "<p>No subjects yet</p>";
-        return;
-      }
-
-      snap.forEach(d => {
-        const s = d.data();
-
-        let mastery =
-          (s.tasksTotal ? (s.tasksDone / s.tasksTotal) * 40 : 0) +
-          Math.min((s.notesCount || 0) / 10 * 20, 20) +
-          Math.min((s.studyMinutes || 0) / 300 * 20, 20) -
-          ((s.missedTasks || 0) * 5);
-
-        mastery = Math.max(0, Math.min(100, Math.round(mastery)));
-
-        const color =
-          mastery < 50 ? "#f44336" :
-          mastery < 80 ? "#ffc107" : "#4caf50";
-
-        div.innerHTML += `
-          <div class="note">
-            <strong>${s.name}</strong>
-            <div class="progress">
-              <div class="progress-bar" style="width:${mastery}%;background:${color}"></div>
-            </div>
-            <small>${mastery}% mastery</small>
-          </div>`;
-      });
-    });
-  }
-
-  // 🚪 LOGOUT
-  logoutBtn.onclick = async () => {
-    await signOut(auth);
-    location.href = "index.html";
-  };
+// LOGOUT
+logoutBtn.onclick=async()=>{
+  await signOut(auth);
+  location.href="index.html";
+};
 </script>
 
 </body>

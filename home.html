@@ -20,7 +20,7 @@ header{
   align-items:center;
 }
 .container{
-  max-width:1100px;
+  max-width:1200px;
   margin:20px auto;
   padding:10px;
 }
@@ -58,7 +58,7 @@ button.delete{
   height:8px;
   border-radius:5px;
   overflow:hidden;
-  margin-top:5px;
+  margin-top:6px;
 }
 .progress div{
   background:#4caf50;
@@ -67,6 +67,12 @@ button.delete{
 .task.done,.lesson.done{
   text-decoration:line-through;
   color:#777;
+}
+.lesson,.task{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:6px;
 }
 </style>
 </head>
@@ -89,10 +95,27 @@ button.delete{
 <div>
 
 <div class="card">
+<h3>Add Note</h3>
+<input id="noteTitle" placeholder="Title">
+<textarea id="noteBody" placeholder="Your note"></textarea>
+<button id="saveNote">Save Note</button>
+</div>
+
+<div class="card">
+<h3>Your Notes</h3>
+<div id="notesList"></div>
+</div>
+
+<div class="card">
 <h3>Tasks</h3>
 <input id="taskInput" placeholder="New task">
 <button id="addTask">Add Task</button>
 <div id="tasksList"></div>
+</div>
+
+<div class="card">
+<h3>📘 Lessons</h3>
+<div id="lessonsList"></div>
 </div>
 
 </div>
@@ -103,6 +126,11 @@ button.delete{
 <div class="card">
 <h3>✅ Tasks Progress</h3>
 <div id="tasksMastery"></div>
+</div>
+
+<div class="card">
+<h3>📊 Subjects Mastery</h3>
+<div id="subjectsMastery"></div>
 </div>
 
 </div>
@@ -139,36 +167,61 @@ let uid;
 onAuthStateChanged(auth,user=>{
   if(!user) location.href="index.html";
   uid=user.uid;
+  loadNotes();
   loadTasks();
+  loadSubjects();
 });
 
 logout.onclick=()=>signOut(auth);
 
-/* ADD TASK */
-addTask.onclick=async()=>{
+/* ================= NOTES ================= */
+saveNote.onclick = async ()=>{
+  if(!noteTitle.value || !noteBody.value) return;
+  await addDoc(collection(db,"users",uid,"notes"),{
+    title:noteTitle.value,
+    body:noteBody.value
+  });
+  noteTitle.value="";
+  noteBody.value="";
+};
+
+function loadNotes(){
+  onSnapshot(collection(db,"users",uid,"notes"),snap=>{
+    notesList.innerHTML="";
+    snap.forEach(d=>{
+      const n=d.data();
+      const div=document.createElement("div");
+      div.innerHTML=`<strong>${n.title}</strong><p>${n.body}</p>`;
+      const del=document.createElement("button");
+      del.textContent="Delete";
+      del.className="delete";
+      del.onclick=()=>deleteDoc(doc(db,"users",uid,"notes",d.id));
+      div.appendChild(del);
+      notesList.appendChild(div);
+    });
+  });
+}
+
+/* ================= TASKS + PROGRESS ================= */
+addTask.onclick = async ()=>{
   if(!taskInput.value) return;
   await addDoc(collection(db,"users",uid,"tasks"),{
     text:taskInput.value,
-    done:false   // 🔑 ALWAYS BOOLEAN
+    done:false
   });
   taskInput.value="";
 };
 
-/* TASKS + FINAL PROGRESS FIX */
 function loadTasks(){
-  onSnapshot(collection(db,"users",uid,"tasks"), snap=>{
+  onSnapshot(collection(db,"users",uid,"tasks"),snap=>{
     tasksList.innerHTML="";
-
-    let doneCount = 0;
-    let total = snap.size;
+    let done=0;
+    let total=snap.size;
 
     snap.forEach(d=>{
       const t=d.data();
-
-      // 🔑 FORCE BOOLEAN (FIX)
       const isDone = t.done === true;
-
-      if(isDone) doneCount++;
+      if(isDone) done++;
 
       const row=document.createElement("div");
       row.className="task"+(isDone?" done":"");
@@ -190,16 +243,58 @@ function loadTasks(){
       tasksList.appendChild(row);
     });
 
-    const percent = total > 0
-      ? Math.round((doneCount / total) * 100)
-      : 0;
+    const percent = total ? Math.round((done/total)*100) : 0;
 
     tasksMastery.innerHTML=`
-      <strong>${doneCount}/${total} completed (${percent}%)</strong>
-      <div class="progress">
-        <div style="width:${percent}%"></div>
-      </div>
+      <strong>${done}/${total} completed (${percent}%)</strong>
+      <div class="progress"><div style="width:${percent}%"></div></div>
     `;
+  });
+}
+
+/* ================= SUBJECTS + LESSONS ================= */
+function loadSubjects(){
+  onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
+    subjectsMastery.innerHTML="";
+    lessonsList.innerHTML="";
+
+    snap.forEach(s=>{
+      const sName=s.data().name;
+      const sid=s.id;
+
+      onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
+        let done=0;
+        let total=ls.size;
+
+        ls.forEach(l=>{
+          const d=l.data();
+          if(d.completed) done++;
+
+          const row=document.createElement("div");
+          row.className="lesson"+(d.completed?" done":"");
+
+          const cb=document.createElement("input");
+          cb.type="checkbox";
+          cb.checked=d.completed;
+          cb.onchange=()=>updateDoc(
+            doc(db,"users",uid,"subjects",sid,"lessons",l.id),
+            { completed: cb.checked }
+          );
+
+          row.append(cb,`${sName}: ${d.title}`);
+          lessonsList.appendChild(row);
+        });
+
+        const percent = total ? Math.round((done/total)*100) : 0;
+
+        subjectsMastery.innerHTML+=`
+          <div>
+            <strong>${sName}</strong> – ${percent}%
+            <div class="progress"><div style="width:${percent}%"></div></div>
+          </div>
+        `;
+      });
+    });
   });
 }
 </script>

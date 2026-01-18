@@ -85,6 +85,14 @@
     <textarea id="content" placeholder="Your note"></textarea>
     <button id="saveBtn">Save Note</button>
   </div>
+  <!-- 📊 SUBJECTS MASTERY PREVIEW -->
+<section id="subjectsSection" style="margin-top:20px;">
+  <h3>📊 Subjects Mastery</h3>
+  <div id="subjectsPreview"></div>
+  <button onclick="location.href='subjects.html'" style="margin-top:10px;">
+    View All Subjects
+  </button>
+</section>
 
   <div class="card">
     <h3>Your Notes</h3>
@@ -196,7 +204,11 @@
     document.getElementById("title").value = "";
     document.getElementById("content").value = "";
   });
-
+  
+<section class="card">
+  <h3>📚 Subject Mastery</h3>
+  <div id="subjectsPreview"></div>
+</section>
   // ✅ TASKS
   function loadTasks() {
     const q = collection(db, "users", currentUserUID, "tasks");
@@ -247,6 +259,47 @@
     await signOut(auth);
     window.location.href = "index.html";
   });
+  // 📊 LOAD SUBJECTS PREVIEW
+function loadSubjectsPreview() {
+  const ref = collection(db, "users", currentUserUID, "subjects");
+
+  onSnapshot(ref, snap => {
+    const div = document.getElementById("subjectsPreview");
+    div.innerHTML = "";
+
+    if (snap.empty) {
+      div.innerHTML = "<p>No subjects yet</p>";
+      return;
+    }
+
+    snap.forEach(docSnap => {
+      const s = docSnap.data();
+
+      let mastery =
+        (s.tasksTotal ? (s.tasksDone / s.tasksTotal) * 40 : 0) +
+        Math.min((s.notesCount / 10) * 20, 20) +
+        Math.min((s.studyMinutes / 300) * 20, 20) -
+        (s.missedTasks * 5);
+
+      mastery = Math.max(0, Math.min(100, Math.round(mastery)));
+
+      div.innerHTML += `
+        <div style="background:#f5f5f5;padding:10px;border-radius:8px;margin-bottom:8px;">
+          <strong>${s.name}</strong>
+          <div style="background:#ddd;border-radius:10px;height:10px;margin:5px 0;">
+            <div style="
+              width:${mastery}%;
+              height:100%;
+              border-radius:10px;
+              background:${mastery<50?'#f44336':mastery<80?'#ffc107':'#4caf50'};
+            "></div>
+          </div>
+          <small>${mastery}% mastery</small>
+        </div>
+      `;
+    });
+  });
+} 
 </script>
 
 </body>

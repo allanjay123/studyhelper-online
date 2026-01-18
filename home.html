@@ -53,7 +53,7 @@ button.delete{
   font-size:12px;
   margin-left:6px;
 }
-.task,.lesson{
+.lesson,.task{
   display:flex;
   align-items:center;
   gap:8px;
@@ -63,9 +63,21 @@ button.delete{
   text-decoration:line-through;
   color:#777;
 }
-.calendar-day{
-  padding:8px;
-  border-bottom:1px solid #ddd;
+.progress{
+  background:#ddd;
+  height:8px;
+  border-radius:5px;
+  overflow:hidden;
+  margin-top:6px;
+}
+.progress div{
+  background:#4caf50;
+  height:100%;
+}
+.subject-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
 </style>
 </head>
@@ -102,6 +114,11 @@ button.delete{
 <div id="tasksList"></div>
 </div>
 
+<div class="card">
+<h3>📘 Lessons</h3>
+<div id="lessonsList"></div>
+</div>
+
 </div>
 
 <!-- RIGHT -->
@@ -109,22 +126,7 @@ button.delete{
 
 <div class="card">
 <h3>📊 Subjects Mastery</h3>
-<input id="subjectName" placeholder="New subject">
-<button id="addSubject">Add Subject</button>
-<div id="subjectsList"></div>
-</div>
-
-<div class="card">
-<h3>📘 Lessons</h3>
-<input id="lessonTitle" placeholder="Lesson title">
-<select id="lessonSubject"></select>
-<button id="addLesson">Add Lesson</button>
-<div id="lessonsList"></div>
-</div>
-
-<div class="card">
-<h3>📅 Calendar</h3>
-<div id="calendar"></div>
+<div id="subjectsMastery"></div>
 </div>
 
 </div>
@@ -136,8 +138,14 @@ button.delete{
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import {
-  getFirestore, collection, addDoc, onSnapshot,
-  deleteDoc, doc, updateDoc, getDocs
+  getFirestore,
+  collection,
+  addDoc,
+  onSnapshot,
+  deleteDoc,
+  doc,
+  updateDoc,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -157,7 +165,6 @@ onAuthStateChanged(auth,user=>{
   loadNotes();
   loadTasks();
   loadSubjects();
-  loadCalendar();
 });
 
 logout.onclick=()=>signOut(auth);
@@ -177,8 +184,9 @@ function loadNotes(){
   onSnapshot(collection(db,"users",uid,"notes"),snap=>{
     notesList.innerHTML="";
     snap.forEach(d=>{
+      const n=d.data();
       const div=document.createElement("div");
-      div.innerHTML=`<strong>${d.data().title}</strong><p>${d.data().body}</p>`;
+      div.innerHTML=`<strong>${n.title}</strong><p>${n.body}</p>`;
       const del=document.createElement("button");
       del.textContent="Delete";
       del.className="delete";
@@ -210,7 +218,10 @@ function loadTasks(){
       const cb=document.createElement("input");
       cb.type="checkbox";
       cb.checked=t.done;
-      cb.onchange=()=>updateDoc(doc(db,"users",uid,"tasks",d.id),{done:cb.checked});
+      cb.onchange=()=>updateDoc(
+        doc(db,"users",uid,"tasks",d.id),
+        {done:cb.checked}
+      );
 
       const del=document.createElement("button");
       del.textContent="X";
@@ -223,52 +234,40 @@ function loadTasks(){
   });
 }
 
-/* SUBJECTS + LESSONS */
-addSubject.onclick=()=>{
-  if(!subjectName.value) return;
-  addDoc(collection(db,"users",uid,"subjects"),{
-    name:subjectName.value
-  });
-  subjectName.value="";
-};
-
-addLesson.onclick=()=>{
-  if(!lessonTitle.value || !lessonSubject.value) return;
-  addDoc(collection(db,"users",uid,"subjects",lessonSubject.value,"lessons"),{
-    title:lessonTitle.value,
-    completed:false
-  });
-  lessonTitle.value="";
-};
-
+/* SUBJECTS + LESSONS + DELETE */
 function loadSubjects(){
   onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
-    subjectsList.innerHTML="";
+    subjectsMastery.innerHTML="";
     lessonsList.innerHTML="";
-    lessonSubject.innerHTML="<option value=''>Select subject</option>";
 
     snap.forEach(s=>{
-      const opt=document.createElement("option");
-      opt.value=s.id;
-      opt.textContent=s.data().name;
-      lessonSubject.appendChild(opt);
+      const sid=s.id;
+      const sName=s.data().name;
 
-      const div=document.createElement("div");
-      div.innerHTML=`<strong>${s.data().name}</strong>`;
-      const del=document.createElement("button");
-      del.textContent="Delete";
-      del.className="delete";
-      del.onclick=async()=>{
-        const ls=await getDocs(collection(db,"users",uid,"subjects",s.id,"lessons"));
+      const subjectDiv=document.createElement("div");
+      subjectDiv.className="subject-header";
+      subjectDiv.innerHTML=`<strong>${sName}</strong>`;
+
+      const delSub=document.createElement("button");
+      delSub.textContent="Delete";
+      delSub.className="delete";
+      delSub.onclick=async()=>{
+        const ls=await getDocs(collection(db,"users",uid,"subjects",sid,"lessons"));
         ls.forEach(l=>deleteDoc(l.ref));
-        deleteDoc(doc(db,"users",uid,"subjects",s.id));
+        deleteDoc(doc(db,"users",uid,"subjects",sid));
       };
-      div.appendChild(del);
-      subjectsList.appendChild(div);
 
-      onSnapshot(collection(db,"users",uid,"subjects",s.id,"lessons"),ls=>{
+      subjectDiv.appendChild(delSub);
+      subjectsMastery.appendChild(subjectDiv);
+
+      onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
+        let done=0;
+        let total=ls.size;
+
         ls.forEach(l=>{
           const d=l.data();
+          if(d.completed) done++;
+
           const row=document.createElement("div");
           row.className="lesson"+(d.completed?" done":"");
 
@@ -276,37 +275,28 @@ function loadSubjects(){
           cb.type="checkbox";
           cb.checked=d.completed;
           cb.onchange=()=>updateDoc(
-            doc(db,"users",uid,"subjects",s.id,"lessons",l.id),
+            doc(db,"users",uid,"subjects",sid,"lessons",l.id),
             {completed:cb.checked}
           );
 
-          const del=document.createElement("button");
-          del.textContent="X";
-          del.className="delete";
-          del.onclick=()=>deleteDoc(
-            doc(db,"users",uid,"subjects",s.id,"lessons",l.id)
+          const delLesson=document.createElement("button");
+          delLesson.textContent="X";
+          delLesson.className="delete";
+          delLesson.onclick=()=>deleteDoc(
+            doc(db,"users",uid,"subjects",sid,"lessons",l.id)
           );
 
-          row.append(cb,`${s.data().name}: ${d.title}`,del);
+          row.append(cb,`${sName}: ${d.title}`,delLesson);
           lessonsList.appendChild(row);
         });
+
+        const percent=total?Math.round((done/total)*100):0;
+        subjectsMastery.innerHTML+=`
+          <div class="progress"><div style="width:${percent}%"></div></div>
+        `;
       });
     });
   });
-}
-
-/* CALENDAR */
-function loadCalendar(){
-  const today=new Date();
-  calendar.innerHTML="";
-  for(let i=0;i<7;i++){
-    const d=new Date();
-    d.setDate(today.getDate()+i);
-    const div=document.createElement("div");
-    div.className="calendar-day";
-    div.textContent=d.toDateString();
-    calendar.appendChild(div);
-  }
 }
 </script>
 

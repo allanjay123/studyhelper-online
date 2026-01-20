@@ -6,19 +6,65 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+:root{
+  --bg:linear-gradient(135deg,#667eea,#764ba2);
+  --card:#fff;
+  --text:#000;
+}
+body.dark{
+  --bg:#121212;
+  --card:#1e1e1e;
+  --text:#fff;
+}
 body{
   margin:0;
   font-family:Arial;
-  background:linear-gradient(135deg,#667eea,#764ba2);
+  background:var(--bg);
   min-height:100vh;
+  color:var(--text);
 }
+
+/* HEADER */
 header{
-  background:#fff;
-  padding:10px 20px;
+  background:var(--card);
+  padding:10px 15px;
   display:flex;
   justify-content:space-between;
   align-items:center;
+  position:relative;
 }
+.hamburger{
+  font-size:22px;
+  cursor:pointer;
+}
+
+/* MENU */
+.menu{
+  position:absolute;
+  top:55px;
+  right:15px;
+  background:var(--card);
+  border-radius:10px;
+  box-shadow:0 8px 20px rgba(0,0,0,.2);
+  width:200px;
+  display:none;
+  flex-direction:column;
+  overflow:hidden;
+}
+.menu button{
+  background:none;
+  color:var(--text);
+  padding:12px;
+  text-align:left;
+  border:none;
+  cursor:pointer;
+}
+.menu button:hover{
+  background:#4caf50;
+  color:#fff;
+}
+
+/* LAYOUT */
 .container{
   max-width:1200px;
   margin:20px auto;
@@ -30,7 +76,7 @@ header{
   gap:15px;
 }
 .card{
-  background:#fff;
+  background:var(--card);
   padding:15px;
   border-radius:12px;
   margin-bottom:15px;
@@ -79,10 +125,11 @@ button.delete{
   padding-bottom:10px;
   margin-bottom:10px;
 }
-.subject-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+
+/* FOCUS MODE */
+body.focus .notes,
+body.focus .tasks{
+  display:none;
 }
 </style>
 </head>
@@ -90,11 +137,15 @@ button.delete{
 <body>
 
 <header>
-  <strong>StudyHelper</strong>
-  <div>
+  <strong>📘 StudyHelper</strong>
+  <div class="hamburger" id="burger">☰</div>
+
+  <div class="menu" id="menu">
+    <button onclick="toggleDark()">🌙 Dark Mode</button>
+    <button onclick="toggleFocus()">🎯 Focus Mode</button>
     <button onclick="location.href='subjects.html'">📚 Subjects</button>
     <button onclick="location.href='calendar.html'">📅 Calendar</button>
-    <button id="logout">Logout</button>
+    <button id="logout">🚪 Logout</button>
   </div>
 </header>
 
@@ -104,19 +155,19 @@ button.delete{
 <!-- LEFT -->
 <div>
 
-<div class="card">
+<div class="card notes">
 <h3>Add Note</h3>
 <input id="noteTitle" placeholder="Title">
 <textarea id="noteBody" placeholder="Your note"></textarea>
 <button id="saveNote">Save Note</button>
 </div>
 
-<div class="card">
+<div class="card notes">
 <h3>Your Notes</h3>
 <div id="notesList"></div>
 </div>
 
-<div class="card">
+<div class="card tasks">
 <h3>Tasks</h3>
 <input id="taskInput" placeholder="New task">
 <button id="addTask">Add Task</button>
@@ -139,7 +190,6 @@ button.delete{
 </div>
 
 </div>
-
 </div>
 </div>
 
@@ -157,16 +207,15 @@ import {
   getDocs
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-/* FIREBASE CONFIG */
-const firebaseConfig = {
-  apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
-  authDomain: "studyhelper-app.firebaseapp.com",
-  projectId: "studyhelper-app"
+/* FIREBASE */
+const firebaseConfig={
+  apiKey:"AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
+  authDomain:"studyhelper-app.firebaseapp.com",
+  projectId:"studyhelper-app"
 };
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
 let uid;
 
 /* AUTH */
@@ -180,8 +229,8 @@ onAuthStateChanged(auth,user=>{
 logout.onclick=()=>signOut(auth);
 
 /* NOTES */
-saveNote.onclick = async ()=>{
-  if(!noteTitle.value || !noteBody.value) return;
+saveNote.onclick=async()=>{
+  if(!noteTitle.value||!noteBody.value)return;
   await addDoc(collection(db,"users",uid,"notes"),{
     title:noteTitle.value,
     body:noteBody.value
@@ -189,7 +238,6 @@ saveNote.onclick = async ()=>{
   noteTitle.value="";
   noteBody.value="";
 };
-
 function loadNotes(){
   onSnapshot(collection(db,"users",uid,"notes"),snap=>{
     notesList.innerHTML="";
@@ -206,16 +254,15 @@ function loadNotes(){
   });
 }
 
-/* TASKS (NO PROGRESS) */
-addTask.onclick = async ()=>{
-  if(!taskInput.value) return;
+/* TASKS */
+addTask.onclick=async()=>{
+  if(!taskInput.value)return;
   await addDoc(collection(db,"users",uid,"tasks"),{
     text:taskInput.value,
     done:false
   });
   taskInput.value="";
 };
-
 function loadTasks(){
   onSnapshot(collection(db,"users",uid,"tasks"),snap=>{
     tasksList.innerHTML="";
@@ -223,103 +270,66 @@ function loadTasks(){
       const t=d.data();
       const row=document.createElement("div");
       row.className="task"+(t.done?" done":"");
-
       const cb=document.createElement("input");
       cb.type="checkbox";
       cb.checked=t.done;
-      cb.onchange=()=>updateDoc(
-        doc(db,"users",uid,"tasks",d.id),
-        {done:cb.checked}
-      );
-
+      cb.onchange=()=>updateDoc(doc(db,"users",uid,"tasks",d.id),{done:cb.checked});
       const del=document.createElement("button");
       del.textContent="X";
       del.className="delete";
       del.onclick=()=>deleteDoc(doc(db,"users",uid,"tasks",d.id));
-
       row.append(cb,t.text,del);
       tasksList.appendChild(row);
     });
   });
 }
 
-/* SUBJECTS + LESSONS (DELETE FIXED) */
+/* SUBJECTS + LESSONS */
 function loadSubjects(){
   onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
     subjectsMastery.innerHTML="";
     lessonsList.innerHTML="";
-
     snap.forEach(s=>{
-      const sid=s.id;
-      const sName=s.data().name;
-
       const box=document.createElement("div");
       box.className="subject-box";
+      box.innerHTML=`<strong>${s.data().name}</strong>`;
+      subjectsMastery.appendChild(box);
 
-      const header=document.createElement("div");
-      header.className="subject-header";
-
-      const title=document.createElement("strong");
-      title.textContent=sName;
-
-      const delSub=document.createElement("button");
-      delSub.textContent="Delete";
-      delSub.className="delete";
-      delSub.onclick=async()=>{
-        const ls=await getDocs(
-          collection(db,"users",uid,"subjects",sid,"lessons")
-        );
-        ls.forEach(l=>deleteDoc(l.ref));
-        await deleteDoc(doc(db,"users",uid,"subjects",sid));
-      };
-
-      header.append(title,delSub);
-      box.appendChild(header);
-
-      onSnapshot(
-        collection(db,"users",uid,"subjects",sid,"lessons"),
-        ls=>{
-          let done=0,total=ls.size;
-
-          ls.forEach(l=>{
-            const d=l.data();
-            if(d.completed) done++;
-
-            const row=document.createElement("div");
-            row.className="lesson"+(d.completed?" done":"");
-
-            const cb=document.createElement("input");
-            cb.type="checkbox";
-            cb.checked=d.completed;
-            cb.onchange=()=>updateDoc(
-              doc(db,"users",uid,"subjects",sid,"lessons",l.id),
-              {completed:cb.checked}
-            );
-
-            const del=document.createElement("button");
-            del.textContent="X";
-            del.className="delete";
-            del.onclick=()=>deleteDoc(
-              doc(db,"users",uid,"subjects",sid,"lessons",l.id)
-            );
-
-            row.append(cb,`${sName}: ${d.title}`,del);
-            lessonsList.appendChild(row);
-          });
-
-          const percent=total?Math.round((done/total)*100):0;
-          const progress=document.createElement("div");
-          progress.className="progress";
-          const bar=document.createElement("div");
-          bar.style.width=percent+"%";
-          progress.appendChild(bar);
-
-          box.appendChild(progress);
-          subjectsMastery.appendChild(box);
-        }
-      );
+      onSnapshot(collection(db,"users",uid,"subjects",s.id,"lessons"),ls=>{
+        let done=0,total=ls.size;
+        ls.forEach(l=>{
+          if(l.data().completed)done++;
+          const row=document.createElement("div");
+          row.className="lesson"+(l.data().completed?" done":"");
+          const cb=document.createElement("input");
+          cb.type="checkbox";
+          cb.checked=l.data().completed;
+          cb.onchange=()=>updateDoc(doc(db,"users",uid,"subjects",s.id,"lessons",l.id),{completed:cb.checked});
+          row.append(cb,`${s.data().name}: ${l.data().title}`);
+          lessonsList.appendChild(row);
+        });
+        const percent=total?Math.round(done/total*100):0;
+        box.innerHTML+=`
+          <div class="progress"><div style="width:${percent}%"></div></div>
+        `;
+      });
     });
   });
+}
+
+/* MENU LOGIC */
+burger.onclick=()=>menu.style.display=menu.style.display==="flex"?"none":"flex";
+
+/* DARK MODE */
+function toggleDark(){
+  document.body.classList.toggle("dark");
+  localStorage.setItem("dark",document.body.classList.contains("dark"));
+}
+if(localStorage.getItem("dark")==="true")document.body.classList.add("dark");
+
+/* FOCUS MODE */
+function toggleFocus(){
+  document.body.classList.toggle("focus");
 }
 </script>
 

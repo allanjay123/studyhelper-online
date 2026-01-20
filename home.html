@@ -255,6 +255,47 @@ body.focus header button{
   }
 
     }
+  /* ===== FORCE FULL WIDTH FIX (DESKTOP + MOBILE) ===== */
+
+html, body {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* main wrapper */
+.container {
+  max-width: 100% !important;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* grid fix */
+.grid {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+}
+
+/* remove possible left gaps */
+header,
+header div {
+  width: 100%;
+  margin: 0;
+}
+
+/* hamburger menu fix */
+.menu,
+.sidebar {
+  max-width: 100%;
+  left: 0;
+}
+
+/* SAFETY FIX: no hidden margin */
+* {
+  box-sizing: border-box;
+}
 </style>
 </head>
 

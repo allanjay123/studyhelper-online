@@ -6,122 +6,82 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-/* ================= BASE ================= */
 body{
-  margin:0;
-  font-family:Arial;
+  margin:0;font-family:Arial;
   background:linear-gradient(135deg,#667eea,#764ba2);
-  min-height:100vh;
-  transition:.3s;
+  min-height:100vh;transition:.3s
 }
-body.dark{
-  background:#121212;
-  color:#eee;
-}
-body.focus header,
-body.focus .right-col{
-  display:none;
-}
+body.dark{background:#121212;color:#eee}
+body.focus header,body.focus .right-col{display:none}
 
-/* ================= HEADER ================= */
+/* HEADER */
 header{
-  background:#fff;
-  padding:10px 15px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+  background:#fff;padding:10px 15px;
+  display:flex;align-items:center;gap:10px
 }
 body.dark header{background:#1f1f1f}
 
-/* ================= HAMBURGER ================= */
-.menu-btn{
-  font-size:22px;
-  cursor:pointer;
+/* MENU */
+.menu-btn{font-size:22px;cursor:pointer}
+.menu-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.4);
+  display:none;z-index:999
 }
+.menu-overlay.show{display:block}
 .side-menu{
-  position:fixed;
-  top:0;left:-260px;
+  position:fixed;top:0;left:-260px;
   width:250px;height:100%;
-  background:#fff;
-  padding:15px;
-  transition:.3s;
-  z-index:1000;
+  background:#fff;padding:15px;
+  transition:.3s;z-index:1000
 }
 .side-menu.open{left:0}
 body.dark .side-menu{background:#1f1f1f}
-.side-menu button{
-  width:100%;
-  margin-bottom:8px;
-}
+.side-menu button{width:100%;margin-bottom:8px}
 
-/* ================= LAYOUT ================= */
+/* LAYOUT */
 .container{max-width:1200px;margin:20px auto;padding:10px}
 .grid{display:grid;grid-template-columns:2fr 1fr;gap:15px}
 .card{
-  background:#fff;
-  padding:15px;
-  border-radius:12px;
-  margin-bottom:15px;
+  background:#fff;padding:15px;
+  border-radius:12px;margin-bottom:15px
 }
 body.dark .card{background:#1f1f1f}
 
-/* ================= FORMS ================= */
-input,textarea{
-  width:100%;
-  padding:8px;
-  margin-bottom:8px;
-}
+/* FORMS */
+input,textarea{width:100%;padding:8px;margin-bottom:8px}
 button{
-  padding:8px 12px;
-  border:none;
-  border-radius:6px;
-  background:#4caf50;
-  color:white;
-  cursor:pointer;
+  padding:8px 12px;border:none;border-radius:6px;
+  background:#4caf50;color:#fff;cursor:pointer
 }
 button.delete{background:#f44336;font-size:12px}
 
-/* ================= ITEMS ================= */
-.lesson,.task{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.lesson.done,.task.done{text-decoration:line-through;color:#777}
+/* ITEMS */
+.task,.lesson{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.done{text-decoration:line-through;color:#777}
 
-/* ================= PROGRESS ================= */
+/* PROGRESS */
 .progress{background:#ddd;height:8px;border-radius:5px;overflow:hidden}
 .progress div{background:#4caf50;height:100%}
-
-/* ================= MODAL ================= */
-.modal{
-  position:fixed;inset:0;
-  background:rgba(0,0,0,.5);
-  display:none;
-  justify-content:center;
-  align-items:center;
-}
-.modal.show{display:flex}
-.modal-box{
-  background:#fff;
-  padding:20px;
-  border-radius:12px;
-  max-width:400px;
-}
-body.dark .modal-box{background:#1f1f1f}
 </style>
 </head>
 
 <body>
 
-<!-- ================= SIDE MENU ================= -->
+<!-- MENU OVERLAY -->
+<div class="menu-overlay" id="overlay" onclick="closeMenu()"></div>
+
+<!-- SIDE MENU -->
 <div class="side-menu" id="menu">
-  <h3>☰ Menu</h3>
+  <button onclick="closeMenu()">❌ Close</button>
   <button onclick="toggleDark()">🌙 Dark Mode</button>
   <button onclick="toggleFocus()">🎯 Focus Mode</button>
-  <button onclick="openTutorial()">📘 Tutorial</button>
-  <button onclick="location.href='calendar.html'">📅 Calendar</button>
+  <button onclick="location.href='calendar.html';closeMenu()">📅 Calendar</button>
   <button id="logout">🚪 Logout</button>
 </div>
 
 <header>
-  <span class="menu-btn" onclick="toggleMenu()">☰</span>
+  <span class="menu-btn" onclick="openMenu()">☰</span>
   <strong>StudyHelper</strong>
 </header>
 
@@ -134,12 +94,12 @@ body.dark .modal-box{background:#1f1f1f}
 <div class="card">
 <h3>Add Note</h3>
 <input id="noteTitle" placeholder="Title">
-<textarea id="noteBody" placeholder="Your note"></textarea>
-<button id="saveNote">Save Note</button>
+<textarea id="noteBody" placeholder="Note"></textarea>
+<button id="saveNote">Save</button>
 </div>
 
 <div class="card">
-<h3>Your Notes</h3>
+<h3>Notes</h3>
 <div id="notesList"></div>
 </div>
 
@@ -156,51 +116,47 @@ body.dark .modal-box{background:#1f1f1f}
 <div class="right-col">
 
 <div class="card">
-<h3>📘 Lessons</h3>
+<h3>Lessons</h3>
 <div id="lessonsList"></div>
 </div>
 
 <div class="card">
-<h3>📊 Subjects Mastery</h3>
+<h3>Subjects Mastery</h3>
 <div id="subjectsMastery"></div>
 </div>
 
+<!-- ✅ SUBJECTS ADD (BABA NG MASTERY) -->
+<div class="card">
+<h3>Add Subject</h3>
+<input id="subjectName" placeholder="Subject name">
+<button id="addSubject">Add Subject</button>
+<div id="subjectsList"></div>
 </div>
 
 </div>
 </div>
-
-<!-- ================= TUTORIAL MODAL ================= -->
-<div class="modal" id="tutorial">
-  <div class="modal-box">
-    <h3>📘 How to use StudyHelper</h3>
-    <p>✅ Add notes and tasks</p>
-    <p>✅ Check lessons to update mastery</p>
-    <p>✅ Use Focus Mode to hide distractions</p>
-    <button onclick="closeTutorial()">Close</button>
-  </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getAuth,onAuthStateChanged,signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import {
   getFirestore,collection,addDoc,onSnapshot,
-  deleteDoc,doc,updateDoc,getDocs
+  deleteDoc,updateDoc,doc
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-/* ================= FIREBASE ================= */
 const firebaseConfig={
   apiKey:"AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
   authDomain:"studyhelper-app.firebaseapp.com",
   projectId:"studyhelper-app"
 };
+
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const db=getFirestore(app);
 let uid;
 
-/* ================= AUTH ================= */
+/* AUTH */
 onAuthStateChanged(auth,u=>{
   if(!u) location.href="index.html";
   uid=u.uid;
@@ -208,32 +164,30 @@ onAuthStateChanged(auth,u=>{
 });
 logout.onclick=()=>signOut(auth);
 
-/* ================= MENU ================= */
-window.toggleMenu=()=>menu.classList.toggle("open");
+/* MENU */
+window.openMenu=()=>{
+  menu.classList.add("open");
+  overlay.classList.add("show");
+}
+window.closeMenu=()=>{
+  menu.classList.remove("open");
+  overlay.classList.remove("show");
+}
 window.toggleDark=()=>{
   document.body.classList.toggle("dark");
   localStorage.dark=document.body.classList.contains("dark");
-};
-window.toggleFocus=()=>{
-  document.body.classList.toggle("focus");
-};
-window.openTutorial=()=>tutorial.classList.add("show");
-window.closeTutorial=()=>tutorial.classList.remove("show");
-
+}
+window.toggleFocus=()=>document.body.classList.toggle("focus");
 if(localStorage.dark==="true") document.body.classList.add("dark");
 
-/* ================= NOTES ================= */
-saveNote.onclick=async()=>{
-  if(!noteTitle.value||!noteBody.value)return;
-  await addDoc(collection(db,"users",uid,"notes"),{
-    title:noteTitle.value,body:noteBody.value
-  });
-  noteTitle.value=noteBody.value="";
-};
+/* NOTES */
+saveNote.onclick=()=>addDoc(collection(db,"users",uid,"notes"),{
+  title:noteTitle.value,body:noteBody.value
+});
 function loadNotes(){
-  onSnapshot(collection(db,"users",uid,"notes"),snap=>{
+  onSnapshot(collection(db,"users",uid,"notes"),s=>{
     notesList.innerHTML="";
-    snap.forEach(d=>{
+    s.forEach(d=>{
       const div=document.createElement("div");
       div.innerHTML=`<b>${d.data().title}</b><p>${d.data().body}</p>`;
       const del=document.createElement("button");
@@ -244,16 +198,14 @@ function loadNotes(){
   });
 }
 
-/* ================= TASKS ================= */
-addTask.onclick=async()=>{
-  if(!taskInput.value)return;
-  await addDoc(collection(db,"users",uid,"tasks"),{text:taskInput.value,done:false});
-  taskInput.value="";
-};
+/* TASKS */
+addTask.onclick=()=>addDoc(collection(db,"users",uid,"tasks"),{
+  text:taskInput.value,done:false
+});
 function loadTasks(){
-  onSnapshot(collection(db,"users",uid,"tasks"),snap=>{
+  onSnapshot(collection(db,"users",uid,"tasks"),s=>{
     tasksList.innerHTML="";
-    snap.forEach(d=>{
+    s.forEach(d=>{
       const t=d.data();
       const row=document.createElement("div");
       row.className="task"+(t.done?" done":"");
@@ -269,27 +221,40 @@ function loadTasks(){
   });
 }
 
-/* ================= SUBJECTS & LESSONS ================= */
+/* SUBJECTS + LESSONS */
+addSubject.onclick=()=>addDoc(collection(db,"users",uid,"subjects"),{
+  name:subjectName.value
+});
 function loadSubjects(){
   onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
     subjectsMastery.innerHTML="";
+    subjectsList.innerHTML="";
     lessonsList.innerHTML="";
     snap.forEach(s=>{
       const sid=s.id;
+
+      // SUBJECT LIST
+      const sub=document.createElement("div");
+      sub.innerHTML=`<b>${s.data().name}</b>`;
+      const del=document.createElement("button");
+      del.textContent="Delete";del.className="delete";
+      del.onclick=()=>deleteDoc(s.ref);
+      sub.appendChild(del);subjectsList.appendChild(sub);
+
+      // LESSONS
       onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
         let done=0,total=ls.size;
         ls.forEach(l=>{
-          const d=l.data();
-          if(d.completed)done++;
+          if(l.data().completed)done++;
           const row=document.createElement("div");
-          row.className="lesson"+(d.completed?" done":"");
+          row.className="lesson"+(l.data().completed?" done":"");
           const cb=document.createElement("input");
-          cb.type="checkbox";cb.checked=d.completed;
+          cb.type="checkbox";cb.checked=l.data().completed;
           cb.onchange=()=>updateDoc(l.ref,{completed:cb.checked});
-          const del=document.createElement("button");
-          del.textContent="X";del.className="delete";
-          del.onclick=()=>deleteDoc(l.ref);
-          row.append(cb,`${s.data().name}: ${d.title}`,del);
+          const delL=document.createElement("button");
+          delL.textContent="X";delL.className="delete";
+          delL.onclick=()=>deleteDoc(l.ref);
+          row.append(cb,`${s.data().name}: ${l.data().title}`,delL);
           lessonsList.appendChild(row);
         });
         const percent=total?Math.round(done/total*100):0;
@@ -306,4 +271,4 @@ function loadSubjects(){
 }
 </script>
 </body>
-  </html>
+</html>

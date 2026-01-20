@@ -142,6 +142,27 @@ body.focus .delete,
 body.focus header button{
   display:none;
 }
+  /* 📱 MOBILE FIX */
+@media (max-width: 768px){
+  .grid{
+    grid-template-columns: 1fr;
+  }
+
+  header{
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  header div{
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+  }
+
+  .menu{
+    width:100%;
+  }
+}
 </style>
 </head>
 

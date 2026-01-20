@@ -163,6 +163,36 @@ body.focus header button{
     width:100%;
   }
 }
+  /* 🔥 MOBILE FIX – tanggal blank space sa kaliwa */
+@media (max-width: 768px) {
+
+  body {
+    overflow-x: hidden;
+  }
+
+  .sidebar {
+    position: fixed;
+    left: -260px; /* itago totally */
+    width: 250px;
+  }
+
+  .sidebar.active {
+    left: 0;
+  }
+
+  .main,
+  .container,
+  .content,
+  .dashboard {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  }
 </style>
 </head>
 

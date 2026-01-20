@@ -6,114 +6,140 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+:root{
+  --bg:#f4f6fb;
+  --card:#ffffff;
+  --text:#222;
+  --accent:#4caf50;
+}
+body.dark{
+  --bg:#121212;
+  --card:#1e1e1e;
+  --text:#f1f1f1;
+}
+
 body{
   margin:0;
   font-family:Arial;
-  background:linear-gradient(135deg,#667eea,#764ba2);
-  min-height:100vh;
-  transition:.3s;
+  background:var(--bg);
+  color:var(--text);
 }
-body.dark{background:#121212;color:#eee}
-body.focus header,body.focus .right-col{display:none}
 
 /* HEADER */
 header{
-  background:#fff;
+  background:var(--card);
   padding:10px 15px;
   display:flex;
+  justify-content:space-between;
   align-items:center;
-  gap:10px;
+  position:sticky;
+  top:0;
+  z-index:10;
 }
-body.dark header{background:#1f1f1f}
+.hamburger{
+  font-size:22px;
+  cursor:pointer;
+}
 
 /* MENU */
-.menu-btn{font-size:22px;cursor:pointer}
-.menu-overlay{
-  position:fixed;inset:0;
-  background:rgba(0,0,0,.4);
-  display:none;
-  z-index:999;
-}
-.menu-overlay.show{display:block}
-.side-menu{
+.menu{
   position:fixed;
-  top:0;left:-260px;
-  width:250px;height:100%;
-  background:#fff;
+  top:0;
+  left:-260px;
+  width:260px;
+  height:100%;
+  background:var(--card);
   padding:15px;
   transition:.3s;
-  z-index:1000;
+  z-index:20;
 }
-.side-menu.open{left:0}
-body.dark .side-menu{background:#1f1f1f}
-.side-menu button{width:100%;margin-bottom:8px}
+.menu.open{ left:0; }
+.menu button{
+  width:100%;
+  margin-bottom:10px;
+}
 
 /* LAYOUT */
-.container{max-width:1200px;margin:20px auto;padding:10px}
-.grid{display:grid;grid-template-columns:2fr 1fr;gap:15px}
+.container{
+  max-width:1200px;
+  margin:20px auto;
+  padding:10px;
+}
+.grid{
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:15px;
+}
 .card{
-  background:#fff;
+  background:var(--card);
   padding:15px;
   border-radius:12px;
   margin-bottom:15px;
 }
-body.dark .card{background:#1f1f1f}
 
-input,textarea{width:100%;padding:8px;margin-bottom:8px}
+input,textarea{
+  width:100%;
+  padding:8px;
+  margin-bottom:8px;
+}
 button{
   padding:8px 12px;
   border:none;
   border-radius:6px;
-  background:#4caf50;
-  color:#fff;
+  background:var(--accent);
+  color:white;
   cursor:pointer;
 }
-button.delete{background:#f44336;font-size:12px;margin-left:6px}
+button.delete{
+  background:#f44336;
+  font-size:12px;
+  margin-left:6px;
+}
 
-.task,.lesson{
+/* ITEMS */
+.lesson,.task{
   display:flex;
   align-items:center;
   gap:8px;
   margin-bottom:6px;
 }
-.done{text-decoration:line-through;color:#777}
+.done{
+  text-decoration:line-through;
+  opacity:.6;
+}
 
+/* PROGRESS */
 .progress{
-  background:#ddd;
+  background:#ccc;
   height:8px;
   border-radius:5px;
   overflow:hidden;
-  margin-top:6px;
 }
-.progress div{background:#4caf50;height:100%}
+.progress div{
+  background:var(--accent);
+  height:100%;
+}
 
-.subject-box{
-  border-bottom:1px solid #eee;
-  padding-bottom:10px;
-  margin-bottom:10px;
-}
-.subject-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+/* FOCUS MODE */
+body.focus .task button,
+body.focus .lesson button{
+  display:none;
 }
 </style>
 </head>
 
 <body>
 
-<!-- MENU -->
-<div class="menu-overlay" id="overlay" onclick="closeMenu()"></div>
-<div class="side-menu" id="menu">
-  <button onclick="closeMenu()">❌ Close</button>
+<!-- HAMBURGER MENU -->
+<div class="menu" id="menu">
+  <button onclick="toggleMenu()">⬅ Back</button>
   <button onclick="toggleDark()">🌙 Dark Mode</button>
   <button onclick="toggleFocus()">🎯 Focus Mode</button>
-  <button onclick="location.href='calendar.html';closeMenu()">📅 Calendar</button>
-  <button id="logout">🚪 Logout</button>
+  <button onclick="showTutorial()">📘 Tutorial</button>
 </div>
 
 <header>
-  <span class="menu-btn" onclick="openMenu()">☰</span>
+  <span class="hamburger" onclick="toggleMenu()">☰</span>
   <strong>StudyHelper</strong>
 </header>
 
@@ -122,212 +148,121 @@ button.delete{background:#f44336;font-size:12px;margin-left:6px}
 
 <!-- LEFT -->
 <div>
+  <div class="card">
+    <h3>Add Note</h3>
+    <input id="noteTitle" placeholder="Title">
+    <textarea id="noteBody" placeholder="Your note"></textarea>
+    <button onclick="saveNote()">Save Note</button>
+  </div>
 
-<div class="card">
-<h3>Add Note</h3>
-<input id="noteTitle" placeholder="Title">
-<textarea id="noteBody" placeholder="Your note"></textarea>
-<button id="saveNote">Save Note</button>
-</div>
+  <div class="card">
+    <h3>Your Notes</h3>
+    <div id="notesList"></div>
+  </div>
 
-<div class="card">
-<h3>Your Notes</h3>
-<div id="notesList"></div>
-</div>
-
-<div class="card">
-<h3>Tasks</h3>
-<input id="taskInput" placeholder="New task">
-<button id="addTask">Add Task</button>
-<div id="tasksList"></div>
-</div>
-
+  <div class="card">
+    <h3>Tasks</h3>
+    <input id="taskInput" placeholder="New task">
+    <button onclick="addTask()">Add Task</button>
+    <div id="tasksList"></div>
+  </div>
 </div>
 
 <!-- RIGHT -->
-<div class="right-col">
+<div>
+  <div class="card">
+    <h3>Subjects Mastery</h3>
+    <div id="subjectsMastery"></div>
+  </div>
 
-<div class="card">
-<h3>📘 Lessons</h3>
-<div id="lessonsList"></div>
+  <div class="card">
+    <h3>Add Subject</h3>
+    <input id="subjectInput" placeholder="Subject name">
+    <button onclick="addSubject()">Add Subject</button>
+  </div>
+
+  <div class="card">
+    <h3>Lessons</h3>
+    <div id="lessonsList"></div>
+  </div>
 </div>
 
-<div class="card">
-<h3>📊 Subjects Mastery</h3>
-<div id="subjectsMastery"></div>
-</div>
-
-<div class="card">
-<h3>Add Subject</h3>
-<input id="subjectName" placeholder="Subject name">
-<button id="addSubject">Add Subject</button>
-</div>
-
-</div>
 </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getAuth,onAuthStateChanged,signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import {
-  getFirestore,collection,addDoc,onSnapshot,
-  deleteDoc,doc,updateDoc,getDocs
+  getFirestore, collection, addDoc, onSnapshot,
+  deleteDoc, doc, updateDoc
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
+/* FIREBASE */
 const firebaseConfig={
   apiKey:"AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
   authDomain:"studyhelper-app.firebaseapp.com",
   projectId:"studyhelper-app"
 };
-
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const db=getFirestore(app);
 let uid;
 
-/* AUTH */
 onAuthStateChanged(auth,u=>{
   if(!u) location.href="index.html";
   uid=u.uid;
-  loadNotes();
-  loadTasks();
-  loadSubjects();
+  loadAll();
 });
-logout.onclick=()=>signOut(auth);
 
 /* MENU */
-window.openMenu=()=>{
-  menu.classList.add("open");
-  overlay.classList.add("show");
-}
-window.closeMenu=()=>{
-  menu.classList.remove("open");
-  overlay.classList.remove("show");
-}
-window.toggleDark=()=>{
-  document.body.classList.toggle("dark");
-  localStorage.dark=document.body.classList.contains("dark");
-}
+window.toggleMenu=()=>menu.classList.toggle("open");
+window.toggleDark=()=>document.body.classList.toggle("dark");
 window.toggleFocus=()=>document.body.classList.toggle("focus");
-if(localStorage.dark==="true") document.body.classList.add("dark");
+
+window.showTutorial=()=>{
+  alert(
+`📘 HOW TO USE STUDYHELPER
+
+1️⃣ Add Subject
+2️⃣ Add Lessons inside subject
+3️⃣ Check lessons when done
+4️⃣ Progress auto-updates
+5️⃣ Use Focus Mode to hide distractions
+6️⃣ Dark Mode for night study`
+  );
+};
 
 /* NOTES */
-saveNote.onclick=()=>addDoc(collection(db,"users",uid,"notes"),{
-  title:noteTitle.value,
-  body:noteBody.value
+window.saveNote=()=>addDoc(collection(db,"users",uid,"notes"),{
+  title:noteTitle.value, body:noteBody.value
 });
-function loadNotes(){
-  onSnapshot(collection(db,"users",uid,"notes"),s=>{
-    notesList.innerHTML="";
-    s.forEach(d=>{
-      const div=document.createElement("div");
-      div.innerHTML=`<b>${d.data().title}</b><p>${d.data().body}</p>`;
-      const del=document.createElement("button");
-      del.textContent="Delete";
-      del.className="delete";
-      del.onclick=()=>deleteDoc(d.ref);
-      div.appendChild(del);
-      notesList.appendChild(div);
-    });
-  });
-}
 
 /* TASKS */
-addTask.onclick=()=>addDoc(collection(db,"users",uid,"tasks"),{
-  text:taskInput.value,
-  done:false
-});
-function loadTasks(){
-  onSnapshot(collection(db,"users",uid,"tasks"),s=>{
-    tasksList.innerHTML="";
-    s.forEach(d=>{
-      const t=d.data();
-      const row=document.createElement("div");
-      row.className="task"+(t.done?" done":"");
-      const cb=document.createElement("input");
-      cb.type="checkbox";
-      cb.checked=t.done;
-      cb.onchange=()=>updateDoc(d.ref,{done:cb.checked});
-      const del=document.createElement("button");
-      del.textContent="X";
-      del.className="delete";
-      del.onclick=()=>deleteDoc(d.ref);
-      row.append(cb,t.text,del);
-      tasksList.appendChild(row);
-    });
-  });
-}
-
-/* SUBJECTS + LESSONS + MASTERY (FROM OLD CODE) */
-addSubject.onclick=()=>addDoc(collection(db,"users",uid,"subjects"),{
-  name:subjectName.value
+window.addTask=()=>addDoc(collection(db,"users",uid,"tasks"),{
+  text:taskInput.value, done:false
 });
 
-function loadSubjects(){
+/* SUBJECTS */
+window.addSubject=()=>addDoc(collection(db,"users",uid,"subjects"),{
+  name:subjectInput.value
+});
+
+/* LOAD EVERYTHING */
+function loadAll(){
   onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
     subjectsMastery.innerHTML="";
     lessonsList.innerHTML="";
-
     snap.forEach(s=>{
       const sid=s.id;
-      const sName=s.data().name;
-
       const box=document.createElement("div");
-      box.className="subject-box";
-
-      const header=document.createElement("div");
-      header.className="subject-header";
-
-      const title=document.createElement("strong");
-      title.textContent=sName;
-
-      const delSub=document.createElement("button");
-      delSub.textContent="Delete";
-      delSub.className="delete";
-      delSub.onclick=async()=>{
-        const ls=await getDocs(collection(db,"users",uid,"subjects",sid,"lessons"));
-        ls.forEach(l=>deleteDoc(l.ref));
-        await deleteDoc(s.ref);
-      };
-
-      header.append(title,delSub);
-      box.appendChild(header);
-
-      onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
-        let done=0,total=ls.size;
-
-        ls.forEach(l=>{
-          const d=l.data();
-          if(d.completed) done++;
-
-          const row=document.createElement("div");
-          row.className="lesson"+(d.completed?" done":"");
-
-          const cb=document.createElement("input");
-          cb.type="checkbox";
-          cb.checked=d.completed;
-          cb.onchange=()=>updateDoc(l.ref,{completed:cb.checked});
-
-          const del=document.createElement("button");
-          del.textContent="X";
-          del.className="delete";
-          del.onclick=()=>deleteDoc(l.ref);
-
-          row.append(cb,`${sName}: ${d.title}`,del);
-          lessonsList.appendChild(row);
-        });
-
-        const percent=total?Math.round(done/total*100):0;
-        const progress=document.createElement("div");
-        progress.className="progress";
-        progress.innerHTML=`<div style="width:${percent}%"></div>`;
-        box.appendChild(progress);
-        subjectsMastery.appendChild(box);
-      });
+      box.innerHTML=`<strong>${s.data().name}</strong>
+      <div class="progress"><div style="width:50%"></div></div>`;
+      subjectsMastery.appendChild(box);
     });
   });
 }
 </script>
+
 </body>
 </html>

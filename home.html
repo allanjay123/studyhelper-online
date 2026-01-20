@@ -7,17 +7,22 @@
 
 <style>
 body{
-  margin:0;font-family:Arial;
+  margin:0;
+  font-family:Arial;
   background:linear-gradient(135deg,#667eea,#764ba2);
-  min-height:100vh;transition:.3s
+  min-height:100vh;
+  transition:.3s;
 }
 body.dark{background:#121212;color:#eee}
 body.focus header,body.focus .right-col{display:none}
 
 /* HEADER */
 header{
-  background:#fff;padding:10px 15px;
-  display:flex;align-items:center;gap:10px
+  background:#fff;
+  padding:10px 15px;
+  display:flex;
+  align-items:center;
+  gap:10px;
 }
 body.dark header{background:#1f1f1f}
 
@@ -26,14 +31,18 @@ body.dark header{background:#1f1f1f}
 .menu-overlay{
   position:fixed;inset:0;
   background:rgba(0,0,0,.4);
-  display:none;z-index:999
+  display:none;
+  z-index:999;
 }
 .menu-overlay.show{display:block}
 .side-menu{
-  position:fixed;top:0;left:-260px;
+  position:fixed;
+  top:0;left:-260px;
   width:250px;height:100%;
-  background:#fff;padding:15px;
-  transition:.3s;z-index:1000
+  background:#fff;
+  padding:15px;
+  transition:.3s;
+  z-index:1000;
 }
 .side-menu.open{left:0}
 body.dark .side-menu{background:#1f1f1f}
@@ -43,35 +52,58 @@ body.dark .side-menu{background:#1f1f1f}
 .container{max-width:1200px;margin:20px auto;padding:10px}
 .grid{display:grid;grid-template-columns:2fr 1fr;gap:15px}
 .card{
-  background:#fff;padding:15px;
-  border-radius:12px;margin-bottom:15px
+  background:#fff;
+  padding:15px;
+  border-radius:12px;
+  margin-bottom:15px;
 }
 body.dark .card{background:#1f1f1f}
 
-/* FORMS */
 input,textarea{width:100%;padding:8px;margin-bottom:8px}
 button{
-  padding:8px 12px;border:none;border-radius:6px;
-  background:#4caf50;color:#fff;cursor:pointer
+  padding:8px 12px;
+  border:none;
+  border-radius:6px;
+  background:#4caf50;
+  color:#fff;
+  cursor:pointer;
 }
-button.delete{background:#f44336;font-size:12px}
+button.delete{background:#f44336;font-size:12px;margin-left:6px}
 
-/* ITEMS */
-.task,.lesson{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.task,.lesson{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:6px;
+}
 .done{text-decoration:line-through;color:#777}
 
-/* PROGRESS */
-.progress{background:#ddd;height:8px;border-radius:5px;overflow:hidden}
+.progress{
+  background:#ddd;
+  height:8px;
+  border-radius:5px;
+  overflow:hidden;
+  margin-top:6px;
+}
 .progress div{background:#4caf50;height:100%}
+
+.subject-box{
+  border-bottom:1px solid #eee;
+  padding-bottom:10px;
+  margin-bottom:10px;
+}
+.subject-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
 </style>
 </head>
 
 <body>
 
-<!-- MENU OVERLAY -->
+<!-- MENU -->
 <div class="menu-overlay" id="overlay" onclick="closeMenu()"></div>
-
-<!-- SIDE MENU -->
 <div class="side-menu" id="menu">
   <button onclick="closeMenu()">❌ Close</button>
   <button onclick="toggleDark()">🌙 Dark Mode</button>
@@ -94,12 +126,12 @@ button.delete{background:#f44336;font-size:12px}
 <div class="card">
 <h3>Add Note</h3>
 <input id="noteTitle" placeholder="Title">
-<textarea id="noteBody" placeholder="Note"></textarea>
-<button id="saveNote">Save</button>
+<textarea id="noteBody" placeholder="Your note"></textarea>
+<button id="saveNote">Save Note</button>
 </div>
 
 <div class="card">
-<h3>Notes</h3>
+<h3>Your Notes</h3>
 <div id="notesList"></div>
 </div>
 
@@ -116,21 +148,19 @@ button.delete{background:#f44336;font-size:12px}
 <div class="right-col">
 
 <div class="card">
-<h3>Lessons</h3>
+<h3>📘 Lessons</h3>
 <div id="lessonsList"></div>
 </div>
 
 <div class="card">
-<h3>Subjects Mastery</h3>
+<h3>📊 Subjects Mastery</h3>
 <div id="subjectsMastery"></div>
 </div>
 
-<!-- ✅ SUBJECTS ADD (BABA NG MASTERY) -->
 <div class="card">
 <h3>Add Subject</h3>
 <input id="subjectName" placeholder="Subject name">
 <button id="addSubject">Add Subject</button>
-<div id="subjectsList"></div>
 </div>
 
 </div>
@@ -142,7 +172,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebas
 import { getAuth,onAuthStateChanged,signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import {
   getFirestore,collection,addDoc,onSnapshot,
-  deleteDoc,updateDoc,doc
+  deleteDoc,doc,updateDoc,getDocs
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 const firebaseConfig={
@@ -160,7 +190,9 @@ let uid;
 onAuthStateChanged(auth,u=>{
   if(!u) location.href="index.html";
   uid=u.uid;
-  loadNotes();loadTasks();loadSubjects();
+  loadNotes();
+  loadTasks();
+  loadSubjects();
 });
 logout.onclick=()=>signOut(auth);
 
@@ -182,7 +214,8 @@ if(localStorage.dark==="true") document.body.classList.add("dark");
 
 /* NOTES */
 saveNote.onclick=()=>addDoc(collection(db,"users",uid,"notes"),{
-  title:noteTitle.value,body:noteBody.value
+  title:noteTitle.value,
+  body:noteBody.value
 });
 function loadNotes(){
   onSnapshot(collection(db,"users",uid,"notes"),s=>{
@@ -191,16 +224,19 @@ function loadNotes(){
       const div=document.createElement("div");
       div.innerHTML=`<b>${d.data().title}</b><p>${d.data().body}</p>`;
       const del=document.createElement("button");
-      del.textContent="Delete";del.className="delete";
+      del.textContent="Delete";
+      del.className="delete";
       del.onclick=()=>deleteDoc(d.ref);
-      div.appendChild(del);notesList.appendChild(div);
+      div.appendChild(del);
+      notesList.appendChild(div);
     });
   });
 }
 
 /* TASKS */
 addTask.onclick=()=>addDoc(collection(db,"users",uid,"tasks"),{
-  text:taskInput.value,done:false
+  text:taskInput.value,
+  done:false
 });
 function loadTasks(){
   onSnapshot(collection(db,"users",uid,"tasks"),s=>{
@@ -210,10 +246,12 @@ function loadTasks(){
       const row=document.createElement("div");
       row.className="task"+(t.done?" done":"");
       const cb=document.createElement("input");
-      cb.type="checkbox";cb.checked=t.done;
+      cb.type="checkbox";
+      cb.checked=t.done;
       cb.onchange=()=>updateDoc(d.ref,{done:cb.checked});
       const del=document.createElement("button");
-      del.textContent="X";del.className="delete";
+      del.textContent="X";
+      del.className="delete";
       del.onclick=()=>deleteDoc(d.ref);
       row.append(cb,t.text,del);
       tasksList.appendChild(row);
@@ -221,49 +259,70 @@ function loadTasks(){
   });
 }
 
-/* SUBJECTS + LESSONS */
+/* SUBJECTS + LESSONS + MASTERY (FROM OLD CODE) */
 addSubject.onclick=()=>addDoc(collection(db,"users",uid,"subjects"),{
   name:subjectName.value
 });
+
 function loadSubjects(){
   onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
     subjectsMastery.innerHTML="";
-    subjectsList.innerHTML="";
     lessonsList.innerHTML="";
+
     snap.forEach(s=>{
       const sid=s.id;
+      const sName=s.data().name;
 
-      // SUBJECT LIST
-      const sub=document.createElement("div");
-      sub.innerHTML=`<b>${s.data().name}</b>`;
-      const del=document.createElement("button");
-      del.textContent="Delete";del.className="delete";
-      del.onclick=()=>deleteDoc(s.ref);
-      sub.appendChild(del);subjectsList.appendChild(sub);
+      const box=document.createElement("div");
+      box.className="subject-box";
 
-      // LESSONS
+      const header=document.createElement("div");
+      header.className="subject-header";
+
+      const title=document.createElement("strong");
+      title.textContent=sName;
+
+      const delSub=document.createElement("button");
+      delSub.textContent="Delete";
+      delSub.className="delete";
+      delSub.onclick=async()=>{
+        const ls=await getDocs(collection(db,"users",uid,"subjects",sid,"lessons"));
+        ls.forEach(l=>deleteDoc(l.ref));
+        await deleteDoc(s.ref);
+      };
+
+      header.append(title,delSub);
+      box.appendChild(header);
+
       onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
         let done=0,total=ls.size;
+
         ls.forEach(l=>{
-          if(l.data().completed)done++;
+          const d=l.data();
+          if(d.completed) done++;
+
           const row=document.createElement("div");
-          row.className="lesson"+(l.data().completed?" done":"");
+          row.className="lesson"+(d.completed?" done":"");
+
           const cb=document.createElement("input");
-          cb.type="checkbox";cb.checked=l.data().completed;
+          cb.type="checkbox";
+          cb.checked=d.completed;
           cb.onchange=()=>updateDoc(l.ref,{completed:cb.checked});
-          const delL=document.createElement("button");
-          delL.textContent="X";delL.className="delete";
-          delL.onclick=()=>deleteDoc(l.ref);
-          row.append(cb,`${s.data().name}: ${l.data().title}`,delL);
+
+          const del=document.createElement("button");
+          del.textContent="X";
+          del.className="delete";
+          del.onclick=()=>deleteDoc(l.ref);
+
+          row.append(cb,`${sName}: ${d.title}`,del);
           lessonsList.appendChild(row);
         });
+
         const percent=total?Math.round(done/total*100):0;
-        const box=document.createElement("div");
-        box.innerHTML=`<b>${s.data().name}</b>`;
-        const p=document.createElement("div");
-        p.className="progress";
-        p.innerHTML=`<div style="width:${percent}%"></div>`;
-        box.appendChild(p);
+        const progress=document.createElement("div");
+        progress.className="progress";
+        progress.innerHTML=`<div style="width:${percent}%"></div>`;
+        box.appendChild(progress);
         subjectsMastery.appendChild(box);
       });
     });

@@ -193,6 +193,68 @@ body.focus header button{
     grid-template-columns: 1fr;
   }
   }
+  /* =========================
+   🔥 MOBILE TOTAL RESET
+   ========================= */
+@media (max-width: 768px) {
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    overflow-x: hidden;
+  }
+
+  /* 🔹 SIDEBAR / MENU */
+  .sidebar,
+  .menu,
+  .hamburger-menu {
+    position: fixed !important;
+    top: 0;
+    left: -100%;
+    width: 260px;
+    height: 100vh;
+    background: #fff;
+    z-index: 9999;
+    transition: left 0.3s ease;
+  }
+
+  .sidebar.active,
+  .menu.active,
+  .hamburger-menu.active {
+    left: 0;
+  }
+
+  /* 🔹 MAIN CONTENT RESET */
+  .main,
+  .container,
+  .content,
+  .dashboard {
+    margin: 0 !important;
+    padding: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* 🔹 GRID → ONE COLUMN */
+  .grid,
+  .layout,
+  .columns {
+    display: block !important;
+  }
+
+  /* 🔹 LEFT & RIGHT PANELS STACK */
+  .left,
+  .right,
+  .subjects,
+  .lessons {
+    width: 100% !important;
+    float: none !important;
+  }
+
+    }
 </style>
 </head>
 

@@ -1,72 +1,71 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Notes</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body{font-family:Arial;background:#6a5acd;padding:20px}
-.box{background:white;max-width:600px;margin:auto;padding:20px;border-radius:10px}
-textarea,input,button{width:100%;margin-top:10px;padding:10px}
-.note{background:#eee;padding:10px;margin-top:10px}
-</style>
 </head>
 <body>
 
-<div class="box">
-  <h2>Add Note</h2>
-  <input id="title" placeholder="Title">
-  <textarea id="text" rows="6" placeholder="Lesson content"></textarea>
-  <button id="save">Save</button>
+<h2>Add Note</h2>
 
-  <h3>Saved Notes</h3>
-  <div id="list"></div>
-</div>
+<textarea id="noteText" rows="5" style="width:100%"></textarea><br><br>
+<button onclick="saveNote()">Save Note</button>
+
+<hr>
+
+<h3>Your Notes</h3>
+<ul id="notesList"></ul>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy }
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
+  apiKey: "PASTE_YOUR_API_KEY",
   authDomain: "studyhelper-app.firebaseapp.com",
   projectId: "studyhelper-app",
   storageBucket: "studyhelper-app.appspot.com",
-  messagingSenderId: "390954392930",
-  appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
+  messagingSenderId: "XXXX",
+  appId: "XXXX"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const list = document.getElementById("list");
+window.saveNote = async function(){
+  const text = document.getElementById("noteText").value.trim();
+  if(!text) return alert("Empty note");
 
-async function load(){
-  list.innerHTML="Loading...";
-  const q = query(collection(db,"notes"), orderBy("time","desc"));
-  const snap = await getDocs(q);
+  try{
+    await addDoc(collection(db,"notes"),{
+      content: text,
+      created: Date.now()
+    });
+    document.getElementById("noteText").value="";
+    loadNotes();
+    alert("Saved!");
+  }catch(e){
+    alert("ERROR: "+e.message);
+  }
+}
+
+async function loadNotes(){
+  const list = document.getElementById("notesList");
   list.innerHTML="";
-  snap.forEach(d=>{
-    list.innerHTML+=`
-      <div class="note">
-        <b>${d.data().title}</b><br>
-        <a href="quiz.html?id=${d.id}">Take Quiz</a>
-      </div>`;
+
+  const q = query(collection(db,"notes"), orderBy("created","desc"));
+  const snap = await getDocs(q);
+
+  snap.forEach(doc=>{
+    const li = document.createElement("li");
+    li.textContent = doc.data().content;
+    list.appendChild(li);
   });
 }
 
-document.getElementById("save").onclick = async ()=>{
-  if(!text.value.trim()) return alert("Empty");
-  await addDoc(collection(db,"notes"),{
-    title:title.value||"Untitled",
-    body:text.value,
-    time:Date.now()
-  });
-  text.value="";
-  load();
-};
-
-load();
+loadNotes();
 </script>
 
 </body>

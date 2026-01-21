@@ -129,15 +129,21 @@ async function loadNote(uid){
   showQuestion();
 }
 
-/* QUIZ GENERATOR (MC + ENUMERATION) */
 function generateQuiz(text){
   questions=[];
 
   const clean=text.replace(/\n/g," ").replace(/\s+/g," ");
-  const sentences=clean.split(".").map(s=>s.trim()).filter(s=>s.split(" ").length>5);
-  const words=clean.toLowerCase().replace(/[^a-z ]/g,"").split(" ").filter(w=>w.length>5);
+  const sentences=clean.split(".").map(s=>s.trim()).filter(s=>s.split(" ").length>6);
 
-  // MULTIPLE CHOICE (3)
+  const words=clean
+    .toLowerCase()
+    .replace(/[^a-z ]/g,"")
+    .split(" ")
+    .filter(w=>w.length>5);
+
+  const keywords=[...new Set(words)];
+
+  /* MULTIPLE CHOICE – FROM SENTENCE */
   for(let i=0;i<3 && sentences.length;i++){
     const s=sentences[Math.floor(Math.random()*sentences.length)];
     const ws=s.split(" ").filter(w=>w.length>5);
@@ -146,21 +152,28 @@ function generateQuiz(text){
     const answer=ws[Math.floor(Math.random()*ws.length)];
     const qText=s.replace(answer,"______");
 
-    const choices=shuffle([
-      answer,
-      randomWord(words),
-      randomWord(words),
-      randomWord(words)
-    ]);
-
     questions.push({
       type:"mc",
       q:qText,
-      choices,
+      choices:shuffle([
+        answer,
+        randomWord(keywords),
+        randomWord(keywords),
+        randomWord(keywords)
+      ]),
       answer
     });
   }
 
+  /* ENUMERATION – IMPORTANT TERMS */
+  if(keywords.length>=5){
+    questions.push({
+      type:"enum",
+      q:"List THREE important terms mentioned in the note:",
+      answers:shuffle(keywords).slice(0,3)
+    });
+  }
+}
   // ENUMERATION (1)
   const uniq=[...new Set(words)];
   if(uniq.length>=3){

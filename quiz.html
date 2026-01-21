@@ -114,27 +114,35 @@ async function loadNote(uid){
   startTimer();
   showQuestion();
 }
-
-/* GENERATE 15 QUESTIONS */
 function generateQuiz(text){
-  questions=[];
+  questions = [];
 
-  const clean=text.replace(/\n/g," ").replace(/\s+/g," ");
-  const sentences=clean.split(".").map(s=>s.trim()).filter(s=>s.split(" ").length>6);
-  const words=clean.toLowerCase().replace(/[^a-z ]/g,"").split(" ").filter(w=>w.length>5);
-  const keywords=[...new Set(words)];
+  const sentences = text
+    .replace(/\n/g," ")
+    .split(".")
+    .map(s=>s.trim())
+    .filter(s=>s.split(" ").length >= 6);
 
-  // 10 MULTIPLE CHOICE
-  for(let i=0;i<10 && sentences.length;i++){
-    const s=sentences[Math.floor(Math.random()*sentences.length)];
-    const ws=s.split(" ").filter(w=>w.length>5);
-    if(!ws.length) continue;
+  const keywords = text
+    .toLowerCase()
+    .replace(/[^a-z ]/g,"")
+    .split(" ")
+    .filter(w=>w.length > 5);
 
-    const answer=ws[Math.floor(Math.random()*ws.length)];
+  /* ---------- MULTIPLE CHOICE ---------- */
+  sentences.forEach(s=>{
+    if(questions.length >= 10) return;
+
+    const words = s.split(" ").filter(w=>w.length > 5);
+    if(words.length < 2) return;
+
+    const answer = words[Math.floor(Math.random()*words.length)];
+    const question = s.replace(answer,"______");
+
     questions.push({
       type:"mc",
-      q:s.replace(answer,"______"),
-      choices:shuffle([
+      q: question,
+      choices: shuffle([
         answer,
         randomWord(keywords),
         randomWord(keywords),
@@ -142,19 +150,28 @@ function generateQuiz(text){
       ]),
       answer
     });
-  }
+  });
 
-  // 5 ENUMERATION
-  for(let i=0;i<5 && keywords.length>=3;i++){
+  /* ---------- ENUMERATION (SMART) ---------- */
+  sentences.slice(0,5).forEach(s=>{
+    const words = s
+      .toLowerCase()
+      .replace(/[^a-z ]/g,"")
+      .split(" ")
+      .filter(w=>w.length > 5);
+
+    if(words.length < 3) return;
+
     questions.push({
       type:"enum",
-      q:"List THREE important terms from the note:",
-      answers:shuffle(keywords).slice(0,3)
+      q: `From the sentence below, list TWO key ideas mentioned:\n"${s}"`,
+      answers: [...new Set(words)].slice(0,2)
     });
-  }
+  });
 
-  questions=shuffle(questions).slice(0,15);
+  questions = shuffle(questions).slice(0,15);
 }
+
 
 /* SHOW QUESTION */
 function showQuestion(){

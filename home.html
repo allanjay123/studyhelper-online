@@ -185,6 +185,7 @@ body.focus header button{
   <button onclick="showTutorial()">📘 Tutorial</button>
   <button onclick="closeMenu()">❌ Exit</button>
 </div>
+ 
 
 <header>
   <span class="hamburger" onclick="openMenu()">☰</span>
@@ -192,6 +193,7 @@ body.focus header button{
   <div>
     <button onclick="location.href='subjects.html'">📚 Subjects</button>
     <button onclick="location.href='calendar.html'">📅 Calendar</button>
+   < button onclick="location.href='quiz.html'">📝 Quiz</button>
     <button id="logout">Logout</button>
   </div>
 </header>
@@ -199,6 +201,19 @@ body.focus header button{
 <div class="container">
 <div class="grid">
 
+
+<body>
+<div class="container">
+  <h2>📘 Add Note</h2>
+  <textarea id="noteInput" placeholder="Type your note here..."></textarea>
+  <button onclick="saveNote()">Save Note</button>
+
+  <h2 style="margin-top:30px;">🧠 Generated Quiz</h2>
+  <button onclick="generateQuiz()">Generate Quiz</button>
+
+  <div id="quizArea"></div>
+</div>
+  
 <!-- LEFT -->
 <div>
   <div class="card">

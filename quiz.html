@@ -1,94 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Quiz</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body{font-family:Arial;background:#764ba2;padding:20px}
-.box{background:white;max-width:600px;margin:auto;padding:20px;border-radius:10px}
-.choice{border:1px solid #ccc;padding:8px;margin-top:6px;cursor:pointer}
-.choice.sel{background:#c8e6c9}
-</style>
 </head>
 <body>
 
-<div class="box" id="box">
-  <h2 id="q">Loading...</h2>
-  <div id="c"></div>
-  <button onclick="next()">Next</button>
-</div>
+<h2>Generated Quiz</h2>
+<div id="quiz"></div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, getDocs }
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
+  apiKey: "PASTE_YOUR_API_KEY",
   authDomain: "studyhelper-app.firebaseapp.com",
   projectId: "studyhelper-app",
   storageBucket: "studyhelper-app.appspot.com",
-  messagingSenderId: "390954392930",
-  appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
+  messagingSenderId: "XXXX",
+  appId: "XXXX"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const id = new URLSearchParams(location.search).get("id");
-const box = document.getElementById("box");
-const qEl = document.getElementById("q");
-const cEl = document.getElementById("c");
+async function loadQuiz(){
+  const quizDiv = document.getElementById("quiz");
+  const snap = await getDocs(collection(db,"notes"));
 
-let quiz=[],i=0,score=0,sel=null;
-
-const snap = await getDoc(doc(db,"notes",id));
-if(!snap.exists()){ alert("NO NOTE"); }
-
-gen(snap.data().body);
-show();
-
-function gen(t){
-  const s=t.split(".").filter(x=>x.split(" ").length>6);
-  s.forEach(x=>{
-    const w=x.split(" ").filter(a=>a.length>4);
-    const a=w[Math.floor(Math.random()*w.length)];
-    quiz.push({
-      q:x.replace(a,"_____"),
-      a:a,
-      c=shuffle([a,...w.slice(0,3)])
-    });
-  });
-}
-
-function show(){
-  sel=null;
-  if(i>=quiz.length){
-    box.innerHTML=`<h2>Score ${score}/${quiz.length}</h2>`;
+  if(snap.empty){
+    quizDiv.innerHTML="<b>No notes found</b>";
     return;
   }
-  qEl.textContent=quiz[i].q;
-  cEl.innerHTML="";
-  quiz[i].c.forEach(x=>{
-    const d=document.createElement("div");
-    d.className="choice";
-    d.textContent=x;
-    d.onclick=()=>{
-      document.querySelectorAll(".choice").forEach(y=>y.classList.remove("sel"));
-      d.classList.add("sel");
-      sel=x;
-    };
-    cEl.appendChild(d);
+
+  let i = 1;
+  snap.forEach(doc=>{
+    const text = doc.data().content;
+    const q = document.createElement("p");
+    q.innerHTML = `<b>Q${i}:</b> What is meant by: "${text}"?`;
+    quizDiv.appendChild(q);
+    i++;
   });
 }
 
-function next(){
-  if(sel===quiz[i].a) score++;
-  i++;
-  show();
-}
-
-function shuffle(a){return a.sort(()=>Math.random()-0.5)}
+loadQuiz();
 </script>
 
 </body>

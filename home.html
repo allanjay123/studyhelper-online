@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
+/* ================= BASE ================= */
 body{
   margin:0;
   font-family:Arial;
@@ -48,7 +49,6 @@ button{
   color:white;
   cursor:pointer;
 }
-
 button.delete{background:#f44336;font-size:12px;margin-left:6px;}
 
 .lesson,.task{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
@@ -78,92 +78,29 @@ button.delete{background:#f44336;font-size:12px;margin-left:6px;}
   .grid{grid-template-columns:1fr;}
   .menu{width:100%;}
 }
-  /* ===============================
-   🖥 DESKTOP FINAL FIX
-   =============================== */
-@media screen and (min-width: 769px) {
-
-  html, body {
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden;
-  }
-
-  body {
-    display: block;
-  }
-
-  header {
-    width: 100%;
-    max-width: 100%;
-    margin: 0;
-    padding: 12px 24px;
-    box-sizing: border-box;
-  }
-
-  .container {
-    max-width: 1200px;
-    margin: 20px auto;
-    padding: 0 15px;
-  }
-
-  .grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 20px;
-    width: 100%;
-  }
-
-  .card {
-    width: 100%;
-    box-sizing: border-box;
-  }
-
-  /* 🔥 FIX LEFT BLANK SPACE */
-  * {
-    box-sizing: border-box;
-  }
-
-  body > * {
-    max-width: 100%;
-  }
-
-  /* MENU (DESKTOP) */
-  .menu {
-    width: 260px;
-    left: -260px;
-  }
-
-  .menu.open {
-    left: 0;
-  }
-}
 </style>
 </head>
 
 <body>
 
-<!-- 🔥 HAMBURGER MENU -->
+<!-- ☰ MENU -->
 <div class="menu" id="menu">
   <h3>☰ Menu</h3>
 
   <button onclick="toggleDark()">🌙 Dark Mode</button>
   <button onclick="toggleFocus()">🎯 Focus Mode</button>
-  <button onclick="exportToPDF()">📕 Export to PDF</button>
 
   <hr>
+  <strong>📕 Export PDF</strong><br><br>
 
-  <strong>📦 Export Selected</strong><br><br>
+  <label><input type="checkbox" id="pdfNotes" checked> Notes</label><br>
+  <label><input type="checkbox" id="pdfTasks"> Tasks</label><br>
+  <label><input type="checkbox" id="pdfLessons"> Lessons</label><br><br>
 
-  <label><input type="checkbox" id="exportNotes" checked> Notes</label><br>
-  <label><input type="checkbox" id="exportTasks" checked> Tasks</label><br>
-  <label><input type="checkbox" id="exportLessons"> Lessons</label><br><br>
-
-  <button onclick="exportSelectedData()">⬇ Export Selected</button>
+  <button onclick="exportPDFSelected()">⬇ Export PDF</button>
 
   <hr>
-
+  <button onclick="showTutorial()">📘 Tutorial</button>
   <button onclick="closeMenu()">❌ Exit</button>
 </div>
 
@@ -215,7 +152,6 @@ button.delete{background:#f44336;font-size:12px;margin-left:6px;}
   </div>
 </div>
 
- 
 </div>
 </div>
 
@@ -251,13 +187,13 @@ window.openMenu=()=>menu.classList.add("open");
 window.closeMenu=()=>menu.classList.remove("open");
 window.toggleDark=()=>document.body.classList.toggle("dark");
 window.toggleFocus=()=>document.body.classList.toggle("focus");
+window.showTutorial=()=>alert("📘 StudyHelper Tutorial");
 
 /* NOTES */
 saveNote.onclick=async()=>{
   if(!noteTitle.value||!noteBody.value) return;
   await addDoc(collection(db,"users",uid,"notes"),{
-    title:noteTitle.value,
-    body:noteBody.value
+    title:noteTitle.value,body:noteBody.value
   });
   noteTitle.value="";noteBody.value="";
 };
@@ -280,10 +216,7 @@ function loadNotes(){
 /* TASKS */
 addTask.onclick=async()=>{
   if(!taskInput.value) return;
-  await addDoc(collection(db,"users",uid,"tasks"),{
-    text:taskInput.value,
-    done:false
-  });
+  await addDoc(collection(db,"users",uid,"tasks"),{text:taskInput.value,done:false});
   taskInput.value="";
 };
 
@@ -297,10 +230,7 @@ function loadTasks(){
       const cb=document.createElement("input");
       cb.type="checkbox";cb.checked=t.done;
       cb.onchange=()=>updateDoc(doc(db,"users",uid,"tasks",d.id),{done:cb.checked});
-      const del=document.createElement("button");
-      del.textContent="X";del.className="delete";
-      del.onclick=()=>deleteDoc(doc(db,"users",uid,"tasks",d.id));
-      row.append(cb,t.text,del);
+      row.append(cb,t.text);
       tasksList.appendChild(row);
     });
   });
@@ -309,86 +239,68 @@ function loadTasks(){
 /* SUBJECTS + LESSONS */
 function loadSubjects(){
   onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
-    subjectsMastery.innerHTML="";
-    lessonsList.innerHTML="";
+    subjectsMastery.innerHTML="";lessonsList.innerHTML="";
     snap.forEach(s=>{
-      const sid=s.id;
-      const sName=s.data().name;
-      const box=document.createElement("div");
-      box.className="subject-box";
-      box.innerHTML=`<strong>${sName}</strong>`;
+      const sid=s.id,sName=s.data().name;
       onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
         let done=0;
         ls.forEach(l=>{
-          const d=l.data();
-          if(d.completed) done++;
-          const row=document.createElement("div");
-          row.className="lesson"+(d.completed?" done":"");
-          const cb=document.createElement("input");
-          cb.type="checkbox";cb.checked=d.completed;
-          cb.onchange=()=>updateDoc(
-            doc(db,"users",uid,"subjects",sid,"lessons",l.id),
-            {completed:cb.checked}
-          );
-          row.append(cb,`${sName}: ${d.title}`);
-          lessonsList.appendChild(row);
+          if(l.data().completed) done++;
+          lessonsList.innerHTML+=`${sName}: ${l.data().title}<br>`;
         });
         const percent=ls.size?Math.round(done/ls.size*100):0;
-        box.innerHTML+=`<div class="progress"><div style="width:${percent}%"></div></div>`;
-        subjectsMastery.appendChild(box);
+        subjectsMastery.innerHTML+=`<strong>${sName}</strong>
+        <div class="progress"><div style="width:${percent}%"></div></div>`;
       });
     });
   });
 }
 
-/* ✅ EXPORT SELECTED – TASKS = TEXT LANG */
-window.exportSelectedData = async ()=>{
-  const data={};
+/* ✅ EXPORT PDF SELECTED */
+window.exportPDFSelected = async ()=>{
+  const { jsPDF }=window.jspdf;
+  const pdf=new jsPDF();
+  let y=10;
 
-  if(exportNotes.checked){
+  pdf.setFontSize(16);
+  pdf.text("STUDYHELPER PDF EXPORT",10,y);
+  y+=10;
+
+  if(pdfNotes.checked){
+    pdf.setFontSize(14);pdf.text("NOTES",10,y);y+=8;
     const snap=await getDocs(collection(db,"users",uid,"notes"));
-    data.notes=snap.docs.map(d=>d.data());
+    snap.forEach(d=>{
+      pdf.setFontSize(11);
+      pdf.text(d.data().title,10,y);y+=6;
+      pdf.text(d.data().body,12,y);y+=8;
+    });
   }
 
-  if(exportTasks.checked){
+  if(pdfTasks.checked){
+    pdf.addPage();y=10;
+    pdf.setFontSize(14);pdf.text("TASKS",10,y);y+=8;
     const snap=await getDocs(collection(db,"users",uid,"tasks"));
-    data.tasks=snap.docs.map(d=>d.data().text);
+    snap.forEach(d=>{
+      pdf.setFontSize(11);
+      pdf.text("- "+d.data().text,10,y);y+=6;
+    });
   }
 
-  if(exportLessons.checked){
-    data.lessons=[];
+  if(pdfLessons.checked){
+    pdf.addPage();y=10;
+    pdf.setFontSize(14);pdf.text("LESSONS",10,y);y+=8;
     const subs=await getDocs(collection(db,"users",uid,"subjects"));
     for(const s of subs.docs){
       const ls=await getDocs(collection(db,"users",uid,"subjects",s.id,"lessons"));
       ls.forEach(l=>{
-        data.lessons.push({
-          subject:s.data().name,
-          title:l.data().title,
-          completed:l.data().completed
-        });
+        pdf.setFontSize(11);
+        pdf.text(`${s.data().name}: ${l.data().title}`,10,y);
+        y+=6;
       });
     }
   }
 
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="studyhelper_selected.json";
-  a.click();
-};
-
-/* PDF */
-window.exportToPDF = async ()=>{
-  const { jsPDF }=window.jspdf;
-  const pdf=new jsPDF();
-  let y=10;
-  pdf.text("STUDYHELPER EXPORT",10,y);y+=10;
-  const snap=await getDocs(collection(db,"users",uid,"notes"));
-  snap.forEach(d=>{
-    pdf.text(d.data().title,10,y);y+=6;
-    pdf.text(d.data().body,12,y);y+=8;
-  });
-  pdf.save("studyhelper.pdf");
+  pdf.save("studyhelper_selected.pdf");
 };
 </script>
 </body>

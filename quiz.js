@@ -1,70 +1,86 @@
 let questions = [];
 let index = 0;
 
-const notes = localStorage.getItem("notes") || "";
+const noteText = localStorage.getItem("notes");
 
-generateQuiz(notes);
+if (!noteText || noteText.trim() === "") {
+  questions = [{
+    type: "mc",
+    q: "No notes found. Please add a note first.",
+    choices: ["Go back", "Reload", "Refresh", "Exit"],
+    answer: "Go back"
+  }];
+} else {
+  generateQuiz(noteText);
+}
+
 showQuestion();
 
-function showQuestion(){
-  const q = questions[index];
-  const box = document.getElementById("quizBox");
+/* ======================= */
 
-  if(!q){
-    box.innerHTML = "<h3>Quiz Finished 🎉</h3>";
+function showQuestion() {
+  const box = document.getElementById("quizBox");
+  const q = questions[index];
+
+  if (!q) {
+    box.innerHTML = "<h3>✅ Quiz Finished</h3>";
     return;
   }
 
-  if(q.type === "mc"){
+  if (q.type === "mc") {
     box.innerHTML = `
       <p>${q.q}</p>
-      ${q.choices.map(c=>`
+      ${q.choices.map(c => `
         <label>
-          <input type="radio" name="ans" value="${c}"> ${c}
+          <input type="radio" name="ans"> ${c}
         </label><br>
       `).join("")}
     `;
   }
 
-  if(q.type === "enum"){
+  if (q.type === "enum") {
     box.innerHTML = `
       <p>${q.q}</p>
-      <textarea id="enumInput" placeholder="One answer per line"></textarea>
+      <textarea placeholder="One answer per line"></textarea>
     `;
   }
 }
 
-function nextQuestion(){
+function nextQuestion() {
   index++;
   showQuestion();
 }
 
-/* ===== QUIZ GENERATOR ===== */
+/* ======================= */
 
-function generateQuiz(text){
-  const clean = text.replace(/\n/g," ");
-  const sentences = clean.split(".").filter(s=>s.split(" ").length>6);
-  const words = clean.toLowerCase().split(" ").filter(w=>w.length>5);
+function generateQuiz(text) {
+  const sentences = text.split(".").filter(s => s.trim().length > 30);
+  const words = text.toLowerCase().split(" ").filter(w => w.length > 5);
 
-  if(sentences.length){
+  if (sentences.length > 0) {
     const s = sentences[0];
-    const ws = s.split(" ").filter(w=>w.length>5);
-    const ans = ws[0];
+    const key = s.split(" ").find(w => w.length > 5);
 
     questions.push({
-      type:"mc",
-      q:s.replace(ans,"_____"),
-      choices:shuffle([ans,random(words),random(words),random(words)]),
-      answer:ans
+      type: "mc",
+      q: s.replace(key, "_____"),
+      choices: shuffle([
+        key,
+        words[1] || "option",
+        words[2] || "choice",
+        words[3] || "answer"
+      ]),
+      answer: key
     });
   }
 
   questions.push({
-    type:"enum",
-    q:"List THREE important terms from the note.",
-    answers:shuffle([...new Set(words)]).slice(0,3)
+    type: "enum",
+    q: "List THREE important words from the note.",
+    answers: words.slice(0, 3)
   });
 }
 
-function shuffle(a){return a.sort(()=>Math.random()-0.5);}
-function random(a){return a[Math.floor(Math.random()*a.length)]}
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}

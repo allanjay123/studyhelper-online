@@ -58,7 +58,6 @@ button.delete{background:#f44336;font-size:12px;margin-left:6px;}
 .progress div{background:#4caf50;height:100%;}
 
 .subject-box{border-bottom:1px solid #eee;padding-bottom:10px;margin-bottom:10px;}
-.subject-header{display:flex;justify-content:space-between;align-items:center;}
 
 /* MENU */
 .menu{
@@ -79,6 +78,67 @@ button.delete{background:#f44336;font-size:12px;margin-left:6px;}
   .grid{grid-template-columns:1fr;}
   .menu{width:100%;}
 }
+  /* ===============================
+   🖥 DESKTOP FINAL FIX
+   =============================== */
+@media screen and (min-width: 769px) {
+
+  html, body {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  body {
+    display: block;
+  }
+
+  header {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 12px 24px;
+    box-sizing: border-box;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 15px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    width: 100%;
+  }
+
+  .card {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* 🔥 FIX LEFT BLANK SPACE */
+  * {
+    box-sizing: border-box;
+  }
+
+  body > * {
+    max-width: 100%;
+  }
+
+  /* MENU (DESKTOP) */
+  .menu {
+    width: 260px;
+    left: -260px;
+  }
+
+  .menu.open {
+    left: 0;
+  }
+}
 </style>
 </head>
 
@@ -97,14 +157,13 @@ button.delete{background:#f44336;font-size:12px;margin-left:6px;}
   <strong>📦 Export Selected</strong><br><br>
 
   <label><input type="checkbox" id="exportNotes" checked> Notes</label><br>
-  <label><input type="checkbox" id="exportTasks"> Tasks</label><br>
+  <label><input type="checkbox" id="exportTasks" checked> Tasks</label><br>
   <label><input type="checkbox" id="exportLessons"> Lessons</label><br><br>
 
   <button onclick="exportSelectedData()">⬇ Export Selected</button>
 
   <hr>
 
-  <button onclick="showTutorial()">📘 Tutorial</button>
   <button onclick="closeMenu()">❌ Exit</button>
 </div>
 
@@ -156,6 +215,7 @@ button.delete{background:#f44336;font-size:12px;margin-left:6px;}
   </div>
 </div>
 
+ 
 </div>
 </div>
 
@@ -191,13 +251,13 @@ window.openMenu=()=>menu.classList.add("open");
 window.closeMenu=()=>menu.classList.remove("open");
 window.toggleDark=()=>document.body.classList.toggle("dark");
 window.toggleFocus=()=>document.body.classList.toggle("focus");
-window.showTutorial=()=>alert("📘 StudyHelper Tutorial");
 
 /* NOTES */
 saveNote.onclick=async()=>{
   if(!noteTitle.value||!noteBody.value) return;
   await addDoc(collection(db,"users",uid,"notes"),{
-    title:noteTitle.value,body:noteBody.value
+    title:noteTitle.value,
+    body:noteBody.value
   });
   noteTitle.value="";noteBody.value="";
 };
@@ -220,7 +280,10 @@ function loadNotes(){
 /* TASKS */
 addTask.onclick=async()=>{
   if(!taskInput.value) return;
-  await addDoc(collection(db,"users",uid,"tasks"),{text:taskInput.value,done:false});
+  await addDoc(collection(db,"users",uid,"tasks"),{
+    text:taskInput.value,
+    done:false
+  });
   taskInput.value="";
 };
 
@@ -246,9 +309,11 @@ function loadTasks(){
 /* SUBJECTS + LESSONS */
 function loadSubjects(){
   onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
-    subjectsMastery.innerHTML="";lessonsList.innerHTML="";
+    subjectsMastery.innerHTML="";
+    lessonsList.innerHTML="";
     snap.forEach(s=>{
-      const sid=s.id,sName=s.data().name;
+      const sid=s.id;
+      const sName=s.data().name;
       const box=document.createElement("div");
       box.className="subject-box";
       box.innerHTML=`<strong>${sName}</strong>`;
@@ -261,7 +326,10 @@ function loadSubjects(){
           row.className="lesson"+(d.completed?" done":"");
           const cb=document.createElement("input");
           cb.type="checkbox";cb.checked=d.completed;
-          cb.onchange=()=>updateDoc(doc(db,"users",uid,"subjects",sid,"lessons",l.id),{completed:cb.checked});
+          cb.onchange=()=>updateDoc(
+            doc(db,"users",uid,"subjects",sid,"lessons",l.id),
+            {completed:cb.checked}
+          );
           row.append(cb,`${sName}: ${d.title}`);
           lessonsList.appendChild(row);
         });
@@ -273,7 +341,7 @@ function loadSubjects(){
   });
 }
 
-/* ✅ EXPORT SELECTED */
+/* ✅ EXPORT SELECTED – TASKS = TEXT LANG */
 window.exportSelectedData = async ()=>{
   const data={};
 
@@ -284,7 +352,7 @@ window.exportSelectedData = async ()=>{
 
   if(exportTasks.checked){
     const snap=await getDocs(collection(db,"users",uid,"tasks"));
-    data.tasks=snap.docs.map(d=>d.data());
+    data.tasks=snap.docs.map(d=>d.data().text);
   }
 
   if(exportLessons.checked){
@@ -292,9 +360,13 @@ window.exportSelectedData = async ()=>{
     const subs=await getDocs(collection(db,"users",uid,"subjects"));
     for(const s of subs.docs){
       const ls=await getDocs(collection(db,"users",uid,"subjects",s.id,"lessons"));
-      ls.forEach(l=>data.lessons.push({
-        subject:s.data().name,...l.data()
-      }));
+      ls.forEach(l=>{
+        data.lessons.push({
+          subject:s.data().name,
+          title:l.data().title,
+          completed:l.data().completed
+        });
+      });
     }
   }
 

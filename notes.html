@@ -1,43 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <title>StudyHelper | Notes</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 body{
-  font-family:Arial,sans-serif;
+  font-family:Arial;
   background:linear-gradient(135deg,#667eea,#764ba2);
   min-height:100vh;
-  margin:0;
   padding:20px;
 }
 .card{
-  background:#fff;
-  padding:20px;
-  border-radius:12px;
+  background:white;
   max-width:700px;
   margin:auto;
+  padding:20px;
+  border-radius:12px;
 }
-textarea,input{
-  width:100%;
-  padding:10px;
-  margin-bottom:10px;
-}
+textarea,input{width:100%;padding:10px;margin-bottom:10px}
 button{
-  padding:10px 14px;
   background:#4caf50;
   color:white;
   border:none;
+  padding:10px;
   border-radius:6px;
   cursor:pointer;
 }
 .note{
   background:#f5f5f5;
   padding:10px;
-  border-radius:6px;
   margin-top:10px;
+  border-radius:6px;
 }
 </style>
 </head>
@@ -47,57 +42,49 @@ button{
 <div class="card">
   <h2>📝 Add Note</h2>
   <input id="title" placeholder="Title">
-  <textarea id="body" rows="6" placeholder="Write your lesson here..."></textarea>
+  <textarea id="body" rows="6" placeholder="Paste lesson here..."></textarea>
   <button onclick="saveNote()">Save Note</button>
 
   <h3>Your Notes</h3>
-  <div id="notes"></div>
+  <div id="list"></div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
-const firebaseConfig = {
+firebase.initializeApp({
   apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
   authDomain: "studyhelper-app.firebaseapp.com",
-  projectId: "studyhelper-app",
-  storageBucket: "studyhelper-app.firebasestorage.app",
-  messagingSenderId: "390954392930",
-  appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
-};
+  projectId: "studyhelper-app"
+});
 
-firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 function saveNote(){
-  const title = title.value;
-  const body = document.getElementById("body").value;
-
-  if(body.trim()===""){
-    alert("Empty note!");
-    return;
-  }
+  const t=title.value.trim();
+  const b=body.value.trim();
+  if(!b){alert("Empty note");return;}
 
   db.collection("notes").add({
-    title,
-    body,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    title:t||"Untitled",
+    body:b
   }).then(()=>{
     body.value="";
+    title.value="";
     loadNotes();
   });
 }
 
 function loadNotes(){
-  notes.innerHTML="";
-  db.collection("notes").orderBy("createdAt","desc").get().then(snap=>{
+  list.innerHTML="";
+  db.collection("notes").get().then(snap=>{
     snap.forEach(doc=>{
       const d=doc.data();
-      notes.innerHTML+=`
+      list.innerHTML+=`
         <div class="note">
-          <b>${d.title||"Untitled"}</b>
-          <p>${d.body}</p>
+          <b>${d.title}</b>
+          <p>${d.body.substring(0,120)}...</p>
           <a href="quiz.html?noteId=${doc.id}">🧠 Take Quiz</a>
         </div>
       `;
@@ -107,5 +94,6 @@ function loadNotes(){
 
 loadNotes();
 </script>
+
 </body>
-  </html>
+</html>

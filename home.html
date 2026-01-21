@@ -78,6 +78,67 @@ button.delete{background:#f44336;font-size:12px;margin-left:6px;}
   .grid{grid-template-columns:1fr;}
   .menu{width:100%;}
 }
+  /* ===============================
+   🖥 DESKTOP FINAL FIX
+   =============================== */
+@media screen and (min-width: 769px) {
+
+  html, body {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  body {
+    display: block;
+  }
+
+  header {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 12px 24px;
+    box-sizing: border-box;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 15px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    width: 100%;
+  }
+
+  .card {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* 🔥 FIX LEFT BLANK SPACE */
+  * {
+    box-sizing: border-box;
+  }
+
+  body > * {
+    max-width: 100%;
+  }
+
+  /* MENU (DESKTOP) */
+  .menu {
+    width: 260px;
+    left: -260px;
+  }
+
+  .menu.open {
+    left: 0;
+  }
+}
 </style>
 </head>
 
@@ -263,11 +324,11 @@ window.exportPDFSelected = async ()=>{
   let y=10;
 
   pdf.setFontSize(16);
-  pdf.text("STUDYHELPER PDF EXPORT",10,y);
+  pdf.text(,10,y);
   y+=10;
 
   if(pdfNotes.checked){
-    pdf.setFontSize(14);pdf.text("NOTES",10,y);y+=8;
+    pdf.setFontSize(14);pdf.text(,10,y);y+=8;
     const snap=await getDocs(collection(db,"users",uid,"notes"));
     snap.forEach(d=>{
       pdf.setFontSize(11);
@@ -278,7 +339,7 @@ window.exportPDFSelected = async ()=>{
 
   if(pdfTasks.checked){
     pdf.addPage();y=10;
-    pdf.setFontSize(14);pdf.text("TASKS",10,y);y+=8;
+    pdf.setFontSize(14);pdf.text(,10,y);y+=8;
     const snap=await getDocs(collection(db,"users",uid,"tasks"));
     snap.forEach(d=>{
       pdf.setFontSize(11);
@@ -288,7 +349,7 @@ window.exportPDFSelected = async ()=>{
 
   if(pdfLessons.checked){
     pdf.addPage();y=10;
-    pdf.setFontSize(14);pdf.text("LESSONS",10,y);y+=8;
+    pdf.setFontSize(14);pdf.text(,10,y);y+=8;
     const subs=await getDocs(collection(db,"users",uid,"subjects"));
     for(const s of subs.docs){
       const ls=await getDocs(collection(db,"users",uid,"subjects",s.id,"lessons"));

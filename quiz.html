@@ -8,21 +8,21 @@
 body{font-family:Arial;background:#764ba2;padding:20px}
 .box{background:white;max-width:600px;margin:auto;padding:20px;border-radius:10px}
 .choice{border:1px solid #ccc;padding:8px;margin-top:6px;cursor:pointer}
-.choice.selected{background:#c8e6c9}
+.choice.sel{background:#c8e6c9}
 </style>
 </head>
 <body>
 
 <div class="box" id="box">
   <h2 id="q">Loading...</h2>
-  <div id="choices"></div>
+  <div id="c"></div>
   <button onclick="next()">Next</button>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-<script>
 const firebaseConfig = {
   apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
   authDomain: "studyhelper-app.firebaseapp.com",
@@ -32,64 +32,62 @@ const firebaseConfig = {
   appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db=firebase.firestore();
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-const id=new URLSearchParams(location.search).get("id");
-let quiz=[],i=0,score=0,selected=null;
+const id = new URLSearchParams(location.search).get("id");
+const box = document.getElementById("box");
+const qEl = document.getElementById("q");
+const cEl = document.getElementById("c");
 
-db.collection("notes").doc(id).get().then(doc=>{
-  if(!doc.exists){
-    alert("NOTE NOT FOUND");
-    return;
-  }
-  generateQuiz(doc.data().body);
-  show();
-});
+let quiz=[],i=0,score=0,sel=null;
 
-function generateQuiz(text){
-  const sentences=text.split(".").filter(s=>s.split(" ").length>6);
-  const words=text.toLowerCase().replace(/[^a-z ]/g,"").split(" ").filter(w=>w.length>4);
+const snap = await getDoc(doc(db,"notes",id));
+if(!snap.exists()){ alert("NO NOTE"); }
 
-  sentences.forEach(s=>{
-    const ws=s.split(" ").filter(w=>w.length>4);
-    const ans=ws[Math.floor(Math.random()*ws.length)];
+gen(snap.data().body);
+show();
+
+function gen(t){
+  const s=t.split(".").filter(x=>x.split(" ").length>6);
+  s.forEach(x=>{
+    const w=x.split(" ").filter(a=>a.length>4);
+    const a=w[Math.floor(Math.random()*w.length)];
     quiz.push({
-      q:s.replace(ans,"_____"),
-      a:ans,
-      c:shuffle([ans,random(words),random(words),random(words)])
+      q:x.replace(a,"_____"),
+      a:a,
+      c=shuffle([a,...w.slice(0,3)])
     });
   });
 }
 
 function show(){
-  selected=null;
+  sel=null;
   if(i>=quiz.length){
     box.innerHTML=`<h2>Score ${score}/${quiz.length}</h2>`;
     return;
   }
-  q.textContent=quiz[i].q;
-  choices.innerHTML="";
-  quiz[i].c.forEach(c=>{
+  qEl.textContent=quiz[i].q;
+  cEl.innerHTML="";
+  quiz[i].c.forEach(x=>{
     const d=document.createElement("div");
     d.className="choice";
-    d.textContent=c;
+    d.textContent=x;
     d.onclick=()=>{
-      document.querySelectorAll(".choice").forEach(x=>x.classList.remove("selected"));
-      d.classList.add("selected");
-      selected=c;
+      document.querySelectorAll(".choice").forEach(y=>y.classList.remove("sel"));
+      d.classList.add("sel");
+      sel=x;
     };
-    choices.appendChild(d);
+    cEl.appendChild(d);
   });
 }
 
 function next(){
-  if(selected===quiz[i].a) score++;
+  if(sel===quiz[i].a) score++;
   i++;
   show();
 }
 
-function random(a){return a[Math.floor(Math.random()*a.length)]||"example"}
 function shuffle(a){return a.sort(()=>Math.random()-0.5)}
 </script>
 

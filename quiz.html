@@ -1,42 +1,226 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Quiz</title>
-</head>
-<body>
+<title>StudyHelper | Quiz</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<h2>Quiz</h2>
-<div id="quiz"></div>
-
+<!-- Firebase COMPAT (IMPORTANT) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
+<style>
+body{
+  font-family:Arial;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  margin:0;
+  padding:20px;
+  min-height:100vh;
+}
+.card{
+  background:#fff;
+  padding:20px;
+  border-radius:12px;
+  max-width:650px;
+  margin:auto;
+}
+.choice{
+  padding:10px;
+  border:1px solid #ccc;
+  border-radius:6px;
+  margin-bottom:8px;
+  cursor:pointer;
+}
+.choice.selected{background:#c8e6c9;}
+input{width:100%;padding:8px;margin-bottom:6px;}
+button{
+  padding:10px 14px;
+  border:none;
+  border-radius:6px;
+  background:#4caf50;
+  color:white;
+  cursor:pointer;
+  margin-top:10px;
+}
+.timer{color:#f44336;font-weight:bold;margin-bottom:10px;}
+</style>
+</head>
+
+<body>
+
+<div class="card" id="quizCard">
+  <button onclick="goBack()">⬅ Back</button>
+  <h2 id="quizTitle">🧠 Quiz</h2>
+  <div class="timer" id="timer">Time: 300</div>
+
+  <div id="questionBox"></div>
+  <div id="choicesBox"></div>
+
+  <button onclick="nextQuestion()">Next</button>
+</div>
+
 <script>
-const firebaseConfig = {
+/* FIREBASE CONFIG */
+firebase.initializeApp({
   apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
   authDomain: "studyhelper-app.firebaseapp.com",
-  projectId: "studyhelper-app",
-  storageBucket: "studyhelper-app.firebasestorage.app",
-  messagingSenderId: "390954392930",
-  appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
-};
+  projectId: "studyhelper-app"
+});
 
-firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 const db = firebase.firestore();
 
-db.collection("notes").get().then(snap=>{
+/* GLOBALS */
+let questions=[], current=0, score=0, time=300, timerInt;
+let uid=null;
+
+/* AUTH */
+auth.onAuthStateChanged(user=>{
+  if(!user){
+    location.href="index.html";
+    return;
+  }
+  uid=user.uid;
+  loadNotesAndGenerateQuiz();
+});
+
+/* LOAD NOTES */
+async function loadNotesAndGenerateQuiz(){
+  const snap = await db.collection("users").doc(uid).collection("notes").get();
   if(snap.empty){
-    quiz.innerHTML = "No notes found";
+    alert("No notes found. Please add notes first.");
+    location.href="home.html";
     return;
   }
 
-  let i = 1;
-  snap.forEach(doc=>{
-    quiz.innerHTML += `<p><b>Q${i}:</b> Explain: ${doc.data().text}</p>`;
-    i++;
+  let combinedText="";
+  snap.forEach(d=>{
+    combinedText += d.data().body + ". ";
   });
-});
+
+  generateQuiz(combinedText);
+  startTimer();
+  showQuestion();
+}
+
+/* QUIZ GENERATOR (REALISTIC) */
+function generateQuiz(text){
+  questions=[];
+
+  const clean=text.replace(/\n/g," ").replace(/\s+/g," ");
+  const sentences=clean.split(".").map(s=>s.trim()).filter(s=>s.split(" ").length>6);
+
+  const words=clean.toLowerCase()
+    .replace(/[^a-z ]/g,"")
+    .split(" ")
+    .filter(w=>w.length>5);
+
+  const keywords=[...new Set(words)];
+
+  /* MULTIPLE CHOICE (10) */
+  for(let i=0;i<10 && sentences.length;i++){
+    const s=random(sentences);
+    const ws=s.split(" ").filter(w=>w.length>5);
+    if(!ws.length) continue;
+
+    const answer=random(ws);
+    questions.push({
+      type:"mc",
+      q:s.replace(answer,"______"),
+      choices:shuffle([
+        answer,
+        random(keywords),
+        random(keywords),
+        random(keywords)
+      ]),
+      answer
+    });
+  }
+
+  /* ENUMERATION (5) */
+  for(let i=0;i<5 && keywords.length>=3;i++){
+    questions.push({
+      type:"enum",
+      q:"List THREE important terms mentioned in your notes:",
+      answers:shuffle(keywords).slice(0,3)
+    });
+  }
+}
+
+/* DISPLAY QUESTION */
+function showQuestion(){
+  if(current>=questions.length){
+    clearInterval(timerInt);
+    quizCard.innerHTML=`
+      <h2>🎉 Quiz Finished</h2>
+      <p><b>Score:</b> ${score} / ${questions.length}</p>
+      <button onclick="goBack()">⬅ Back</button>
+    `;
+    return;
+  }
+
+  const q=questions[current];
+  questionBox.innerHTML=`<p><b>${current+1}. ${q.q}</b></p>`;
+  choicesBox.innerHTML="";
+
+  if(q.type==="mc"){
+    q.choices.forEach(c=>{
+      const div=document.createElement("div");
+      div.className="choice";
+      div.textContent=c;
+      div.onclick=()=>{
+        document.querySelectorAll(".choice").forEach(x=>x.classList.remove("selected"));
+        div.classList.add("selected");
+        div.dataset.selected="true";
+      };
+      choicesBox.appendChild(div);
+    });
+  }else{
+    for(let i=0;i<3;i++){
+      const input=document.createElement("input");
+      input.placeholder="Answer "+(i+1);
+      choicesBox.appendChild(input);
+    }
+  }
+}
+
+/* NEXT */
+function nextQuestion(){
+  const q=questions[current];
+
+  if(q.type==="mc"){
+    const sel=[...document.querySelectorAll(".choice")].find(x=>x.dataset.selected);
+    if(sel && sel.textContent===q.answer) score++;
+  }else{
+    const inputs=[...choicesBox.querySelectorAll("input")];
+    let correct=0;
+    inputs.forEach(i=>{
+      if(q.answers.includes(i.value.toLowerCase())) correct++;
+    });
+    if(correct>=2) score++;
+  }
+
+  current++;
+  showQuestion();
+}
+
+/* TIMER */
+function startTimer(){
+  timerInt=setInterval(()=>{
+    time--;
+    timer.textContent="Time: "+time;
+    if(time<=0){
+      clearInterval(timerInt);
+      showQuestion();
+    }
+  },1000);
+}
+
+/* HELPERS */
+function random(arr){return arr[Math.floor(Math.random()*arr.length)]||"example";}
+function shuffle(a){return a.sort(()=>Math.random()-0.5);}
+function goBack(){history.back();}
 </script>
 
 </body>

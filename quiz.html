@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>StudyHelper – Notes to Quiz</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg,#667eea,#764ba2);
+  min-height:100vh;
+  margin:0;
+  padding:20px;
+}
+.container{
+  max-width:800px;
+  margin:auto;
+  background:#fff;
+  padding:20px;
+  border-radius:10px;
+}
+h2{margin-top:0}
+textarea{
+  width:100%;
+  height:120px;
+  padding:10px;
+}
+button{
+  padding:10px 15px;
+  background:#4CAF50;
+  color:#fff;
+  border:none;
+  border-radius:5px;
+  cursor:pointer;
+  margin-top:10px;
+}
+button:hover{opacity:.9}
+.quiz-box{
+  margin-top:20px;
+  padding:15px;
+  background:#f4f4f4;
+  border-radius:8px;
+}
+.choice{
+  display:block;
+  margin:5px 0;
+}
+input[type="text"]{
+  width:100%;
+  padding:8px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+  <h2>📘 Add Note</h2>
+  <textarea id="noteInput" placeholder="Type your note here..."></textarea>
+  <button onclick="saveNote()">Save Note</button>
+
+  <h2 style="margin-top:30px;">🧠 Generated Quiz</h2>
+  <button onclick="generateQuiz()">Generate Quiz</button>
+
+  <div id="quizArea"></div>
+</div>
+
+<script>
+// ================= SAVE NOTE =================
+function saveNote(){
+  const note = document.getElementById("noteInput").value.trim();
+  if(!note){
+    alert("Please write a note first");
+    return;
+  }
+  localStorage.setItem("studyhelper_note", note);
+  alert("✅ Note saved successfully!");
+}
+
+// ================= TEXT HELPERS =================
+function prepareText(text){
+  return text.replace(/\n/g," ").replace(/\s+/g," ").trim();
+}
+
+function getSentences(text){
+  return text.split(".").map(s=>s.trim()).filter(s=>s.split(" ").length>=6);
+}
+
+function getKeywords(text){
+  return [...new Set(
+    text.toLowerCase()
+    .replace(/[^a-z ]/g,"")
+    .split(" ")
+    .filter(w=>w.length>5)
+  )];
+}
+
+function randomItem(arr){
+  return arr[Math.floor(Math.random()*arr.length)];
+}
+
+function shuffle(arr){
+  return arr.sort(()=>Math.random()-0.5);
+}
+
+// ================= QUIZ GENERATOR =================
+function generateQuiz(){
+  const note = localStorage.getItem("studyhelper_note");
+  if(!note){
+    alert("❌ No note found. Save a note first.");
+    return;
+  }
+
+  const clean = prepareText(note);
+  const sentences = getSentences(clean);
+  const keywords = getKeywords(clean);
+  const quizArea = document.getElementById("quizArea");
+  quizArea.innerHTML = "";
+
+  let qnum = 1;
+
+  // MULTIPLE CHOICE
+  sentences.slice(0,2).forEach(sentence=>{
+    const words = sentence.split(" ").filter(w=>w.length>5);
+    if(!words.length) return;
+
+    const answer = randomItem(words);
+    const questionText = sentence.replace(answer,"_____");
+    const choices = shuffle([
+      answer,
+      randomItem(keywords),
+      randomItem(keywords),
+      randomItem(keywords)
+    ]);
+
+    quizArea.innerHTML += `
+      <div class="quiz-box">
+        <b>${qnum++}. ${questionText}</b>
+        ${choices.map(c=>`
+          <label class="choice">
+            <input type="radio" name="q${qnum}"> ${c}
+          </label>`).join("")}
+        <small><i>Answer: ${answer}</i></small>
+      </div>
+    `;
+  });
+
+  // TRUE / FALSE
+  if(sentences.length){
+    quizArea.innerHTML += `
+      <div class="quiz-box">
+        <b>${qnum++}. True or False:</b><br>
+        "${sentences[0]}"
+        <br>
+        <small><i>Answer: True</i></small>
+      </div>
+    `;
+  }
+
+  // ENUMERATION
+  if(keywords.length>=3){
+    quizArea.innerHTML += `
+      <div class="quiz-box">
+        <b>${qnum++}. List THREE important terms mentioned in the note.</b>
+        <br>
+        <small><i>Possible answers: ${keywords.slice(0,3).join(", ")}</i></small>
+      </div>
+    `;
+  }
+}
+</script>
+</body>
+  </html>

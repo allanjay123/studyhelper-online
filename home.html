@@ -92,7 +92,11 @@ body.focus header button{display:none;}
   header div{width:100%;display:flex;justify-content:space-between;}
   .menu{width:100%;}
 }
-  /* ✅ DESKTOP SPACE FIX – FINAL */
+  /* ===============================
+   DESKTOP SITE SPACE FIX
+   =============================== */
+
+/* Remove any viewport overflow */
 html, body {
   width: 100%;
   margin: 0;
@@ -100,16 +104,31 @@ html, body {
   overflow-x: hidden;
 }
 
-header,
-.container {
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
+/* Prevent 100vw bug */
+* {
+  box-sizing: border-box;
 }
 
+/* Center content properly on desktop */
+header {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 10px;
+}
+
+/* Grid should never exceed container */
 .grid {
   width: 100%;
+  margin: 0;
 }
+
 </style>
 </head>
 

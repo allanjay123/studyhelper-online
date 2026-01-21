@@ -4,35 +4,17 @@
 <meta charset="UTF-8">
 <title>Quiz</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <style>
-body{
-  font-family:Arial;
-  background:#764ba2;
-  padding:20px;
-}
-.box{
-  background:white;
-  max-width:600px;
-  margin:auto;
-  padding:20px;
-  border-radius:10px;
-}
-.choice{
-  border:1px solid #ccc;
-  padding:8px;
-  margin-bottom:6px;
-  cursor:pointer;
-}
+body{font-family:Arial;background:#764ba2;padding:20px}
+.box{background:white;max-width:600px;margin:auto;padding:20px;border-radius:10px}
+.choice{border:1px solid #ccc;padding:8px;margin-top:6px;cursor:pointer}
 .choice.selected{background:#c8e6c9}
 </style>
 </head>
-
 <body>
 
 <div class="box" id="box">
-  <button onclick="history.back()">⬅ Back</button>
-  <h2 id="q"></h2>
+  <h2 id="q">Loading...</h2>
   <div id="choices"></div>
   <button onclick="next()">Next</button>
 </div>
@@ -41,68 +23,73 @@ body{
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
-firebase.initializeApp({
+const firebaseConfig = {
   apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
-  projectId: "studyhelper-app"
-});
+  authDomain: "studyhelper-app.firebaseapp.com",
+  projectId: "studyhelper-app",
+  storageBucket: "studyhelper-app.appspot.com",
+  messagingSenderId: "390954392930",
+  appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
+};
 
+firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
-const id=new URLSearchParams(location.search).get("id");
 
-let Q=[],i=0,score=0,selected=null;
+const id=new URLSearchParams(location.search).get("id");
+let quiz=[],i=0,score=0,selected=null;
 
 db.collection("notes").doc(id).get().then(doc=>{
   if(!doc.exists){
-    alert("Note not found");
+    alert("NOTE NOT FOUND");
     return;
   }
-  build(doc.data().body);
+  generateQuiz(doc.data().body);
   show();
 });
 
-function build(text){
-  const s=text.split(".").filter(x=>x.split(" ").length>5);
-  const w=text.toLowerCase().replace(/[^a-z ]/g,"").split(" ").filter(x=>x.length>4);
+function generateQuiz(text){
+  const sentences=text.split(".").filter(s=>s.split(" ").length>6);
+  const words=text.toLowerCase().replace(/[^a-z ]/g,"").split(" ").filter(w=>w.length>4);
 
-  s.forEach(line=>{
-    const ws=line.split(" ").filter(x=>x.length>4);
+  sentences.forEach(s=>{
+    const ws=s.split(" ").filter(w=>w.length>4);
     const ans=ws[Math.floor(Math.random()*ws.length)];
-    Q.push({
-      q: line.replace(ans,"_____"),
-      a: ans,
-      c: shuffle([ans,rand(w),rand(w),rand(w)])
+    quiz.push({
+      q:s.replace(ans,"_____"),
+      a:ans,
+      c:shuffle([ans,random(words),random(words),random(words)])
     });
   });
 }
 
 function show(){
   selected=null;
-  if(i>=Q.length){
-    box.innerHTML=`<h2>Score: ${score}/${Q.length}</h2>`;
+  if(i>=quiz.length){
+    box.innerHTML=`<h2>Score ${score}/${quiz.length}</h2>`;
     return;
   }
-  q.textContent=Q[i].q;
+  q.textContent=quiz[i].q;
   choices.innerHTML="";
-  Q[i].c.forEach(x=>{
+  quiz[i].c.forEach(c=>{
     const d=document.createElement("div");
     d.className="choice";
-    d.textContent=x;
+    d.textContent=c;
     d.onclick=()=>{
-      document.querySelectorAll(".choice").forEach(e=>e.classList.remove("selected"));
+      document.querySelectorAll(".choice").forEach(x=>x.classList.remove("selected"));
       d.classList.add("selected");
-      selected=x;
+      selected=c;
     };
     choices.appendChild(d);
   });
 }
 
 function next(){
-  if(selected===Q[i].a) score++;
+  if(selected===quiz[i].a) score++;
   i++;
   show();
 }
 
-function rand(a){return a[Math.floor(Math.random()*a.length)]||"example"}
+function random(a){return a[Math.floor(Math.random()*a.length)]||"example"}
 function shuffle(a){return a.sort(()=>Math.random()-0.5)}
 </script>
 

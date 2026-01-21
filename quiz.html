@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>StudyHelper | Quiz</title>
+<title>StudyHelper | Notes</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Firebase COMPAT (IMPORTANT) -->
+<!-- FIREBASE COMPAT -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -22,18 +22,14 @@ body{
   background:#fff;
   padding:20px;
   border-radius:12px;
-  max-width:650px;
+  max-width:700px;
   margin:auto;
 }
-.choice{
+input, textarea{
+  width:100%;
   padding:10px;
-  border:1px solid #ccc;
-  border-radius:6px;
-  margin-bottom:8px;
-  cursor:pointer;
+  margin-bottom:10px;
 }
-.choice.selected{background:#c8e6c9;}
-input{width:100%;padding:8px;margin-bottom:6px;}
 button{
   padding:10px 14px;
   border:none;
@@ -41,23 +37,31 @@ button{
   background:#4caf50;
   color:white;
   cursor:pointer;
-  margin-top:10px;
 }
-.timer{color:#f44336;font-weight:bold;margin-bottom:10px;}
+.note{
+  border-bottom:1px solid #ddd;
+  padding:10px 0;
+}
+.delete{
+  background:#f44336;
+  font-size:12px;
+  margin-left:5px;
+}
 </style>
 </head>
 
 <body>
 
-<div class="card" id="quizCard">
-  <button onclick="goBack()">⬅ Back</button>
-  <h2 id="quizTitle">🧠 Quiz</h2>
-  <div class="timer" id="timer">Time: 300</div>
+<div class="card">
+  <h2>📝 My Notes</h2>
 
-  <div id="questionBox"></div>
-  <div id="choicesBox"></div>
+  <input id="title" placeholder="Note title">
+  <textarea id="body" placeholder="Write your notes here..."></textarea>
+  <button onclick="saveNote()">💾 Save Note</button>
 
-  <button onclick="nextQuestion()">Next</button>
+  <hr>
+  <h3>Saved Notes</h3>
+  <div id="notesList"></div>
 </div>
 
 <script>
@@ -70,10 +74,7 @@ firebase.initializeApp({
 
 const auth = firebase.auth();
 const db = firebase.firestore();
-
-/* GLOBALS */
-let questions=[], current=0, score=0, time=300, timerInt;
-let uid=null;
+let uid = null;
 
 /* AUTH */
 auth.onAuthStateChanged(user=>{
@@ -81,146 +82,74 @@ auth.onAuthStateChanged(user=>{
     location.href="index.html";
     return;
   }
-  uid=user.uid;
-  loadNotesAndGenerateQuiz();
+  uid = user.uid;
+  loadNotes();
 });
 
+/* SAVE NOTE */
+function saveNote(){
+  const t = title.value.trim();
+  const b = body.value.trim();
+
+  if(!t || !b){
+    alert("Please fill in both title and note.");
+    return;
+  }
+
+  db.collection("users")
+    .doc(uid)
+    .collection("notes")
+    .add({
+      title: t,
+      body: b,
+      created: firebase.firestore.FieldValue.serverTimestamp()
+    })
+    .then(()=>{
+      title.value="";
+      body.value="";
+      loadNotes();
+    })
+    .catch(err=>{
+      alert("Save failed: " + err.message);
+    });
+}
+
 /* LOAD NOTES */
-async function loadNotesAndGenerateQuiz(){
-  const snap = await db.collection("users").doc(uid).collection("notes").get();
-  if(snap.empty){
-    alert("No notes found. Please add notes first.");
-    location.href="home.html";
-    return;
-  }
+function loadNotes(){
+  notesList.innerHTML="Loading...";
 
-  let combinedText="";
-  snap.forEach(d=>{
-    combinedText += d.data().body + ". ";
-  });
-
-  generateQuiz(combinedText);
-  startTimer();
-  showQuestion();
-}
-
-/* QUIZ GENERATOR (REALISTIC) */
-function generateQuiz(text){
-  questions=[];
-
-  const clean=text.replace(/\n/g," ").replace(/\s+/g," ");
-  const sentences=clean.split(".").map(s=>s.trim()).filter(s=>s.split(" ").length>6);
-
-  const words=clean.toLowerCase()
-    .replace(/[^a-z ]/g,"")
-    .split(" ")
-    .filter(w=>w.length>5);
-
-  const keywords=[...new Set(words)];
-
-  /* MULTIPLE CHOICE (10) */
-  for(let i=0;i<10 && sentences.length;i++){
-    const s=random(sentences);
-    const ws=s.split(" ").filter(w=>w.length>5);
-    if(!ws.length) continue;
-
-    const answer=random(ws);
-    questions.push({
-      type:"mc",
-      q:s.replace(answer,"______"),
-      choices:shuffle([
-        answer,
-        random(keywords),
-        random(keywords),
-        random(keywords)
-      ]),
-      answer
+  db.collection("users")
+    .doc(uid)
+    .collection("notes")
+    .orderBy("created","desc")
+    .onSnapshot(snap=>{
+      notesList.innerHTML="";
+      snap.forEach(doc=>{
+        const n = doc.data();
+        const div = document.createElement("div");
+        div.className="note";
+        div.innerHTML=`
+          <b>${n.title}</b>
+          <p>${n.body}</p>
+          <button class="delete" onclick="deleteNote('${doc.id}')">Delete</button>
+          <a href="quiz.html?noteId=${doc.id}">
+            <button>🧠 Quiz</button>
+          </a>
+        `;
+        notesList.appendChild(div);
+      });
     });
-  }
-
-  /* ENUMERATION (5) */
-  for(let i=0;i<5 && keywords.length>=3;i++){
-    questions.push({
-      type:"enum",
-      q:"List THREE important terms mentioned in your notes:",
-      answers:shuffle(keywords).slice(0,3)
-    });
-  }
 }
 
-/* DISPLAY QUESTION */
-function showQuestion(){
-  if(current>=questions.length){
-    clearInterval(timerInt);
-    quizCard.innerHTML=`
-      <h2>🎉 Quiz Finished</h2>
-      <p><b>Score:</b> ${score} / ${questions.length}</p>
-      <button onclick="goBack()">⬅ Back</button>
-    `;
-    return;
-  }
-
-  const q=questions[current];
-  questionBox.innerHTML=`<p><b>${current+1}. ${q.q}</b></p>`;
-  choicesBox.innerHTML="";
-
-  if(q.type==="mc"){
-    q.choices.forEach(c=>{
-      const div=document.createElement("div");
-      div.className="choice";
-      div.textContent=c;
-      div.onclick=()=>{
-        document.querySelectorAll(".choice").forEach(x=>x.classList.remove("selected"));
-        div.classList.add("selected");
-        div.dataset.selected="true";
-      };
-      choicesBox.appendChild(div);
-    });
-  }else{
-    for(let i=0;i<3;i++){
-      const input=document.createElement("input");
-      input.placeholder="Answer "+(i+1);
-      choicesBox.appendChild(input);
-    }
-  }
+/* DELETE */
+function deleteNote(id){
+  if(!confirm("Delete this note?")) return;
+  db.collection("users")
+    .doc(uid)
+    .collection("notes")
+    .doc(id)
+    .delete();
 }
-
-/* NEXT */
-function nextQuestion(){
-  const q=questions[current];
-
-  if(q.type==="mc"){
-    const sel=[...document.querySelectorAll(".choice")].find(x=>x.dataset.selected);
-    if(sel && sel.textContent===q.answer) score++;
-  }else{
-    const inputs=[...choicesBox.querySelectorAll("input")];
-    let correct=0;
-    inputs.forEach(i=>{
-      if(q.answers.includes(i.value.toLowerCase())) correct++;
-    });
-    if(correct>=2) score++;
-  }
-
-  current++;
-  showQuestion();
-}
-
-/* TIMER */
-function startTimer(){
-  timerInt=setInterval(()=>{
-    time--;
-    timer.textContent="Time: "+time;
-    if(time<=0){
-      clearInterval(timerInt);
-      showQuestion();
-    }
-  },1000);
-}
-
-/* HELPERS */
-function random(arr){return arr[Math.floor(Math.random()*arr.length)]||"example";}
-function shuffle(a){return a.sort(()=>Math.random()-0.5);}
-function goBack(){history.back();}
 </script>
 
 </body>

@@ -313,10 +313,10 @@ window.exportToPDF = async ()=>{
   let y = 10;
 
   pdf.setFontSize(16);
-  pdf.text("STUDYHELPER EXPORT",10,y); y+=10;
+  pdf.text(,10,y); y+=10;
 
   pdf.setFontSize(14);
-  pdf.text("NOTES",10,y); y+=8;
+  pdf.text(,10,y); y+=8;
   const notes=await getDocs(collection(db,"users",uid,"notes"));
   pdf.setFontSize(11);
   notes.forEach(d=>{

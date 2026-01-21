@@ -7,45 +7,47 @@
 
 <style>
 body{
-  font-family:Arial;
+  font-family:Arial,sans-serif;
   margin:0;
-  padding:15px;
+  padding:20px;
   background:linear-gradient(135deg,#667eea,#764ba2);
   min-height:100vh;
 }
 .card{
   background:#fff;
-  padding:15px;
+  padding:20px;
   border-radius:12px;
   max-width:600px;
   margin:auto;
 }
 .choice{
-  padding:8px;
+  padding:10px;
   border:1px solid #ccc;
   border-radius:6px;
-  margin-bottom:6px;
+  margin-bottom:8px;
   cursor:pointer;
 }
 .choice.selected{
   background:#c8e6c9;
 }
 .timer{
-  font-weight:bold;
   color:#f44336;
-}
-input{
-  width:100%;
-  padding:8px;
-  margin-bottom:8px;
+  font-weight:bold;
+  margin-bottom:10px;
 }
 button{
-  padding:8px 12px;
+  padding:10px 14px;
   border:none;
   border-radius:6px;
   background:#4caf50;
   color:white;
   cursor:pointer;
+  margin-top:10px;
+}
+input{
+  width:100%;
+  padding:8px;
+  margin-bottom:6px;
 }
 </style>
 </head>
@@ -57,9 +59,9 @@ button{
   <div class="timer" id="timer">Time: 60</div>
 
   <div id="questionBox"></div>
-  <div id="choices"></div>
+  <div id="choicesBox"></div>
 
-  <button id="nextBtn">Next</button>
+  <button onclick="nextQuestion()">Next</button>
 </div>
 
 <script type="module">
@@ -73,33 +75,52 @@ const firebaseConfig={
   authDomain:"studyhelper-app.firebaseapp.com",
   projectId:"studyhelper-app"
 };
-
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const db=getFirestore(app);
 
+/* GLOBALS */
 const params=new URLSearchParams(location.search);
 const noteId=params.get("noteId");
 
-let uid;
 let questions=[];
 let current=0;
 let score=0;
 let selected=null;
 let time=60;
-let timerInterval;
+let timerInt;
+
+/* DEMO TEXT (kung walang noteId) */
+const DEMO_TEXT=`
+Database systems store and manage data efficiently.
+They allow users to query, update, and secure information.
+Databases are essential in modern applications.
+`;
 
 /* AUTH */
-onAuthStateChanged(auth, async user=>{
-  if(!user){ location.href="index.html"; return; }
-  uid=user.uid;
-  loadNote();
+onAuthStateChanged(auth, user=>{
+  if(!user){
+    location.href="index.html";
+    return;
+  }
+  loadNote(user.uid);
 });
 
 /* LOAD NOTE */
-async function loadNote(){
+async function loadNote(uid){
+  if(!noteId){
+    quizTitle.textContent="🧠 Demo Quiz";
+    generateQuiz(DEMO_TEXT);
+    startTimer();
+    showQuestion();
+    return;
+  }
+
   const snap=await getDoc(doc(db,"users",uid,"notes",noteId));
-  if(!snap.exists()){ alert("Note not found"); return; }
+  if(!snap.exists()){
+    alert("Note not found");
+    return;
+  }
 
   const note=snap.data();
   quizTitle.textContent="🧠 Quiz: "+note.title;
@@ -108,48 +129,66 @@ async function loadNote(){
   showQuestion();
 }
 
-/* GENERATE MIX QUIZ */
+/* QUIZ GENERATOR (MC + ENUMERATION) */
 function generateQuiz(text){
   questions=[];
-  const clean=text.replace(/\n/g," ");
-  const words=clean.split(" ").filter(w=>w.length>5);
+
+  const clean=text.replace(/\n/g," ").replace(/\s+/g," ");
+  const sentences=clean.split(".").map(s=>s.trim()).filter(s=>s.split(" ").length>5);
+  const words=clean.toLowerCase().replace(/[^a-z ]/g,"").split(" ").filter(w=>w.length>5);
 
   // MULTIPLE CHOICE (3)
-  for(let i=0;i<3;i++){
-    const answer=words[Math.floor(Math.random()*words.length)];
+  for(let i=0;i<3 && sentences.length;i++){
+    const s=sentences[Math.floor(Math.random()*sentences.length)];
+    const ws=s.split(" ").filter(w=>w.length>5);
+    if(ws.length===0) continue;
+
+    const answer=ws[Math.floor(Math.random()*ws.length)];
+    const qText=s.replace(answer,"______");
+
     const choices=shuffle([
       answer,
       randomWord(words),
       randomWord(words),
       randomWord(words)
     ]);
+
     questions.push({
       type:"mc",
-      q:"Which word appeared in the note?",
+      q:qText,
       choices,
       answer
     });
   }
 
   // ENUMERATION (1)
-  questions.push({
-    type:"enum",
-    q:"List THREE important words from the note",
-    answers:shuffle([...new Set(words)]).slice(0,3)
-  });
+  const uniq=[...new Set(words)];
+  if(uniq.length>=3){
+    questions.push({
+      type:"enum",
+      q:"List THREE important terms mentioned in the note:",
+      answers:shuffle(uniq).slice(0,3)
+    });
+  }
 }
 
-/* SHOW QUESTION */
+/* DISPLAY QUESTION */
 function showQuestion(){
+  selected=null;
+  choicesBox.innerHTML="";
+  questionBox.innerHTML="";
+
   if(current>=questions.length){
-    showScore();
+    clearInterval(timerInt);
+    document.querySelector(".card").innerHTML=`
+      <h2>🎉 Quiz Finished</h2>
+      <p><b>Score:</b> ${score} / ${questions.length}</p>
+    `;
     return;
   }
 
-  selected=null;
   const q=questions[current];
-  questionBox.innerHTML="<h3>"+q.q+"</h3>";
-  choices.innerHTML="";
+  questionBox.innerHTML=`<p><b>${current+1}. ${q.q}</b></p>`;
 
   if(q.type==="mc"){
     q.choices.forEach(c=>{
@@ -161,27 +200,26 @@ function showQuestion(){
         div.classList.add("selected");
         selected=c;
       };
-      choices.appendChild(div);
+      choicesBox.appendChild(div);
     });
-  }
-
-  if(q.type==="enum"){
+  }else{
     for(let i=0;i<3;i++){
       const input=document.createElement("input");
       input.placeholder="Answer "+(i+1);
-      choices.appendChild(input);
+      input.dataset.index=i;
+      choicesBox.appendChild(input);
     }
   }
 }
 
 /* NEXT */
-nextBtn.onclick=()=>{
+window.nextQuestion=()=>{
   const q=questions[current];
 
-  if(q.type==="mc" && selected===q.answer) score++;
-
-  if(q.type==="enum"){
-    const inputs=[...choices.querySelectorAll("input")];
+  if(q.type==="mc"){
+    if(selected===q.answer) score++;
+  }else{
+    const inputs=[...choicesBox.querySelectorAll("input")];
     let correct=0;
     inputs.forEach(i=>{
       if(q.answers.includes(i.value.toLowerCase())) correct++;
@@ -193,32 +231,24 @@ nextBtn.onclick=()=>{
   showQuestion();
 };
 
-/* SCORE */
-function showScore(){
-  clearInterval(timerInterval);
-  questionBox.innerHTML="<h2>✅ Quiz Finished</h2>";
-  choices.innerHTML="<p>Your Score: <b>"+score+" / "+questions.length+"</b></p>";
-  nextBtn.style.display="none";
-}
-
 /* TIMER */
 function startTimer(){
-  timerInterval=setInterval(()=>{
+  timerInt=setInterval(()=>{
     time--;
     timer.textContent="Time: "+time;
     if(time<=0){
-      clearInterval(timerInterval);
-      showScore();
+      clearInterval(timerInt);
+      showQuestion();
     }
   },1000);
 }
 
 /* HELPERS */
 function randomWord(arr){
-  return arr[Math.floor(Math.random()*arr.length)];
+  return arr[Math.floor(Math.random()*arr.length)]||"example";
 }
-function shuffle(arr){
-  return arr.sort(()=>Math.random()-0.5);
+function shuffle(a){
+  return a.sort(()=>Math.random()-0.5);
 }
 </script>
 

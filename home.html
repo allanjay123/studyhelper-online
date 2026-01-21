@@ -313,10 +313,10 @@ window.exportToPDF = async ()=>{
   let y = 10;
 
   pdf.setFontSize(16);
-  pdf.text("STUDYHELPER EXPORT",10,y); y+=10;
+  pdf.text(,10,y); y+=10;
 
   pdf.setFontSize(14);
-  pdf.text("NOTES",10,y); y+=8;
+  pdf.text(,10,y); y+=8;
   const notes=await getDocs(collection(db,"users",uid,"notes"));
   pdf.setFontSize(11);
   notes.forEach(d=>{
@@ -326,14 +326,14 @@ window.exportToPDF = async ()=>{
 
   pdf.addPage(); y=10;
   pdf.setFontSize(14);
-  pdf.text("TASKS",10,y); y+=8;
+  pdf.text(,10,y); y+=8;
   const tasks=await getDocs(collection(db,"users",uid,"tasks"));
   pdf.setFontSize(11);
   tasks.forEach(d=>{
     pdf.text(`- ${d.data().text}`,10,y); y+=6;
   });
 
-  pdf.save;
+  pdf.save("studyhelper.pdf");
 };
 </script>
 

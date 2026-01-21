@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>StudyHelper | Quiz</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  font-family:Arial;
+  margin:0;
+  padding:15px;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  min-height:100vh;
+}
+.card{
+  background:#fff;
+  padding:15px;
+  border-radius:12px;
+  max-width:600px;
+  margin:auto;
+}
+.choice{
+  padding:8px;
+  border:1px solid #ccc;
+  border-radius:6px;
+  margin-bottom:6px;
+  cursor:pointer;
+}
+.choice:hover{
+  background:#eee;
+}
+.choice.selected{
+  background:#c8e6c9;
+}
+.timer{
+  font-weight:bold;
+  color:#f44336;
+  margin-bottom:10px;
+}
+button{
+  padding:8px 12px;
+  border:none;
+  border-radius:6px;
+  background:#4caf50;
+  color:white;
+  cursor:pointer;
+  margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2 id="quizTitle">🧠 Quiz</h2>
+  <div class="timer" id="timer">Time: 60</div>
+  <div id="questionBox"></div>
+  <div id="choices"></div>
+  <button id="nextBtn">Next</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, addDoc, collection
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+/* FIREBASE */
+const firebaseConfig={
+  apiKey:"AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
+  authDomain:"studyhelper-app.firebaseapp.com",
+  projectId:"studyhelper-app"
+};
+
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+
+const params = new URLSearchParams(location.search);
+const noteId = params.get("noteId");
+
+let uid;
+let questions=[];
+let current=0;
+let score=0;
+let selected=null;
+let time=60;
+let timerInterval;
+
+/* AUTH */
+onAuthStateChanged(auth, async user=>{
+  if(!user) location.href="index.html";
+  uid=user.uid;
+  loadNote();
+});
+
+/* LOAD NOTE & GENERATE QUIZ */
+async function loadNote(){
+  const snap = await getDoc(doc(db,"users",uid,"notes",noteId));
+  if(!snap.exists()){
+    alert("Note not found");
+    return;
+  }
+  const note = snap.data();
+  quizTitle.textContent = `🧠 Quiz: ${note.title}`;
+  generateQuiz(note.body);
+  startTimer();
+  showQuestion();
+}
+
+/* SIMPLE QUIZ GENERATOR (NO API) */
+function generateQuiz(text){
+  const words = text.split(" ").filter(w=>w.length>4);
+  for(let i=0;i<5;i++){
+    const answer = words[Math.floor(Math.random()*words.length)];
+    const choices = shuffle([
+      answer,
+      randomWord(words),
+      randomWord(words),
+      randomWord(words)
+    ]);
+    questions.push({
+      q:`Which word appeared in the note?`,
+      choices,
+      answer
+    });
+  }
+}
+
+function generateQuiz(text){
+  questions = [];
+
+  // CLEAN TEXT
+  const cleanText = text.replace(/\n/g," ").replace(/\s+/g," ");
+
+  // SENTENCES
+  const sentences = cleanText
+    .split(".")
+    .map(s=>s.trim())
+    .filter(s=>s.split(" ").length >= 6);
+
+  // KEYWORDS
+  const keywords = cleanText
+    .toLowerCase()
+    .replace(/[^a-zA-Z ]/g,"")
+    .split(" ")
+    .filter(w=>w.length > 5);
+
+  // -------- MULTIPLE CHOICE --------
+  for(let i=0;i<3 && sentences.length;i++){
+    const sentence = sentences[Math.floor(Math.random()*sentences.length)];
+    const words = sentence.split(" ").filter(w=>w.length > 5);
+
+    if(words.length === 0) continue;
+
+    const answer = words[Math.floor(Math.random()*words.length)];
+
+    const questionText = sentence.replace(answer,"______");
+
+    const choices = shuffle([
+      answer,
+      randomWord(keywords),
+      randomWord(keywords),
+      randomWord(keywords)
+    ]);
+
+    questions.push({
+      type:"mc",
+      q:questionText,
+      choices,
+      answer
+    });
+  }
+
+  // -------- ENUMERATION --------
+  if(keywords.length >= 5){
+    const enumAnswers = shuffle([...new Set(keywords)]).slice(0,3);
+
+    questions.push({
+      type:"enum",
+      q:"List THREE important terms mentioned in the note.",
+      answers: enumAnswers
+    });
+  }
+}
+</script>
+
+</body>
+</html>

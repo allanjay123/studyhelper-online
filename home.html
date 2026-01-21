@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>StudyHelper | Home</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 /* ================= BASE ================= */
 body{
@@ -303,7 +303,9 @@ header,
 <!-- HAMBURGER MENU -->
 <div class="menu" id="menu">
   <h3>☰ </h3>
+  
   <button onclick="toggleDark()">🌙 Dark Mode</button>
+  <button onclick="exportToPDF()">📕 Export to PDF</button>
   <button onclick="toggleFocus()">🎯 Focus Mode</button>
   <button onclick="showTutorial()">📘 Tutorial</button>
   <button onclick="closeMenu()">❌ Exit</button>
@@ -359,6 +361,26 @@ header,
 
 </div>
 </div>
+<h3>Export Options</h3>
+
+<label>
+  <input type="checkbox" id="exportNotes" checked>
+  Notes
+</label><br>
+
+<label>
+  <input type="checkbox" id="exportTasks">
+  Tasks
+</label><br>
+
+<label>
+  <input type="checkbox" id="exportLessons">
+  Lessons
+</label><br>
+
+<button onclick="exportSelectedData()">
+  Export Selected
+</button>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
@@ -510,7 +532,97 @@ function loadSubjects(){
     });
   });
 }
+window.exportUserData = async function () {
+  const user = auth.currentUser;
+  if (!user) {
+    alert("Not logged in");
+    return;
+  }
+
+  const uid = user.uid;
+  const collections = ["subjects", "tasks", "notes"];
+  const exportData = {};
+
+  for (const col of collections) {
+    const snap = await getDocs(collection(db, "users", uid, col));
+    exportData[col] = snap.docs.map(d => ({
+      id: d.id,
+      ...d.data()
+    }));
+  }
+
+  const blob = new Blob(
+    [JSON.stringify(exportData, null, 2)],
+    { type: "application/json" }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "studyhelper_backup.json";
+  a.click();
+  URL.revokeObjectURL(url);
+};
+window.exportToPDF = async function () {
+  const user = auth.currentUser;
+  if (!user) {
+    alert("Not logged in");
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
+  let y = 10;
+
+  pdf.setFontSize(16);
+  pdf.text("STUDYHELPER EXPORT", 10, y);
+  y += 10;
+
+  pdf.setFontSize(14);
+  pdf.text("NOTES", 10, y);
+  y += 8;
+
+  const notesSnap = await getDocs(collection(db,"users",uid,"notes"));
+  pdf.setFontSize(11);
+
+  if (notesSnap.empty) {
+    pdf.text("- No notes", 10, y);
+    y += 6;
+  }
+
+  notesSnap.forEach(d=>{
+    pdf.text(`Title: ${d.data().title}`, 10, y);
+    y += 5;
+    pdf.text(d.data().body, 12, y);
+    y += 8;
+  });
+
+  y += 5;
+  pdf.setFontSize(14);
+  pdf.text("TASKS", 10, y);
+  y += 8;
+
+  const tasksSnap = await getDocs(collection(db,"users",uid,"tasks"));
+  pdf.setFontSize(11);
+
+  if (tasksSnap.empty) {
+    pdf.text("- No tasks", 10, y);
+  }
+
+  tasksSnap.forEach(d=>{
+    pdf.text(
+      `- ${d.data().text} [${d.data().done ? "DONE" : "PENDING"}]`,
+      10,
+      y
+    );
+    y += 6;
+  });
+
+  pdf.save("studyhelper.pdf");
+};
+
 </script>
+
 
 </body>
 </html>

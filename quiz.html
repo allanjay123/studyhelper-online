@@ -7,250 +7,189 @@
 
 <style>
 body{
-  font-family:Arial,sans-serif;
   margin:0;
-  padding:20px;
+  font-family:Arial, sans-serif;
   background:linear-gradient(135deg,#667eea,#764ba2);
-  min-height:100vh;
 }
-.card{
+.container{
+  max-width:800px;
+  margin:40px auto;
   background:#fff;
   padding:20px;
-  border-radius:12px;
-  max-width:600px;
-  margin:auto;
-}
-.choice{
-  padding:10px;
-  border:1px solid #ccc;
-  border-radius:6px;
-  margin-bottom:8px;
-  cursor:pointer;
-}
-.choice.selected{
-  background:#c8e6c9;
-}
-.timer{
-  color:#f44336;
-  font-weight:bold;
-  margin-bottom:10px;
+  border-radius:10px;
 }
 button{
-  padding:10px 14px;
+  padding:10px 20px;
+  background:#4CAF50;
+  color:#fff;
   border:none;
-  border-radius:6px;
-  background:#4caf50;
-  color:white;
+  border-radius:5px;
   cursor:pointer;
-  margin-top:10px;
 }
-input{
-  width:100%;
-  padding:8px;
-  margin-bottom:6px;
+button:hover{opacity:.9}
+.back{
+  background:#888;
+  margin-bottom:10px;
 }
 </style>
 </head>
 
-<body>
+<body onload="loadLatestNote()">
 
-<div class="card">
-  <button onclick="history.back()">⬅ Back</button>
-  <h2 id="quizTitle">🧠 Quiz</h2>
-  <div class="timer" id="timer">Time: 300</div>
+<div class="container">
+  <button class="back" onclick="history.back()">⬅ Back</button>
 
-  <div id="questionBox"></div>
-  <div id="choicesBox"></div>
-
+  <h2>Generated Quiz</h2>
+  <div id="quizBox">Loading quiz...</div>
+  <br>
   <button onclick="nextQuestion()">Next</button>
+  <p id="result"></p>
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-/* FIREBASE */
-const firebaseConfig={
-  apiKey:"AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
-  authDomain:"studyhelper-app.firebaseapp.com",
-  projectId:"studyhelper-app"
+<script>
+/* 🔥 FIREBASE CONFIG (SA'YO ITO) */
+const firebaseConfig = {
+  apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
+  authDomain: "studyhelper-app.firebaseapp.com",
+  projectId: "studyhelper-app",
+  storageBucket: "studyhelper-app.firebasestorage.app",
+  messagingSenderId: "390954392930",
+  appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
 };
-const app=initializeApp(firebaseConfig);
-const auth=getAuth(app);
-const db=getFirestore(app);
 
-/* GLOBALS */
-const params=new URLSearchParams(location.search);
-const noteId=params.get("noteId");
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-let questions=[];
-let current=0;
-let score=0;
-let selected=null;
-let time=300;
-let timerInt;
+/* QUIZ LOGIC */
+let questions = [];
+let current = 0;
+let score = 0;
 
-/* AUTH */
-onAuthStateChanged(auth,user=>{
-  if(!user){ location.href="index.html"; return; }
-  loadNote(user.uid);
-});
+/* LOAD NOTE ONLINE */
+async function loadLatestNote(){
+  const snap = await db.collection("notes")
+    .orderBy("createdAt","desc")
+    .limit(1)
+    .get();
 
-/* LOAD NOTE */
-async function loadNote(uid){
-  const snap=noteId
-    ? await getDoc(doc(db,"users",uid,"notes",noteId))
-    : null;
+  if(snap.empty){
+    document.getElementById("quizBox").innerHTML =
+      "❌ No notes found";
+    return;
+  }
 
-  const text=snap?.exists()
-    ? snap.data().body
-    : `Database systems manage data efficiently. 
-       They support queries, storage, and security.
-       Databases are essential in modern software.`;
-
-  quizTitle.textContent="🧠 Quiz";
-  generateQuiz(text);
-  startTimer();
+  const noteText = snap.docs[0].data().body;
+  generateQuiz(noteText);
   showQuestion();
 }
+
+/* AUTO QUIZ GENERATOR */
 function generateQuiz(text){
   questions = [];
+  score = 0;
+  current = 0;
 
   const sentences = text
     .replace(/\n/g," ")
     .split(".")
     .map(s=>s.trim())
-    .filter(s=>s.split(" ").length >= 6);
+    .filter(s=>s.length > 25);
 
-  const keywords = text
-    .toLowerCase()
-    .replace(/[^a-z ]/g,"")
-    .split(" ")
-    .filter(w=>w.length > 5);
+  const keywords = [...new Set(
+    text.toLowerCase().match(/\b[a-z]{5,}\b/g)
+  )];
 
-  /* ---------- MULTIPLE CHOICE ---------- */
+  /* MULTIPLE CHOICE */
   sentences.forEach(s=>{
-    if(questions.length >= 10) return;
+    if(questions.length >= 7) return;
 
     const words = s.split(" ").filter(w=>w.length > 5);
     if(words.length < 2) return;
 
-    const answer = words[Math.floor(Math.random()*words.length)];
-    const question = s.replace(answer,"______");
+    const answer = words[0];
 
     questions.push({
       type:"mc",
-      q: question,
+      q: s.replace(answer,"_____"),
       choices: shuffle([
         answer,
-        randomWord(keywords),
-        randomWord(keywords),
-        randomWord(keywords)
+        random(keywords),
+        random(keywords),
+        random(keywords)
       ]),
       answer
     });
   });
 
-  /* ---------- ENUMERATION (SMART) ---------- */
-  sentences.slice(0,5).forEach(s=>{
-    const words = s
-      .toLowerCase()
-      .replace(/[^a-z ]/g,"")
-      .split(" ")
-      .filter(w=>w.length > 5);
-
-    if(words.length < 3) return;
-
-    questions.push({
-      type:"enum",
-      q: `From the sentence below, list TWO key ideas mentioned:\n"${s}"`,
-      answers: [...new Set(words)].slice(0,2)
-    });
+  /* ENUMERATION */
+  questions.push({
+    type:"enum",
+    q:"Mention TWO important ideas found in the note.",
+    answers: keywords.slice(0,2)
   });
-
-  questions = shuffle(questions).slice(0,15);
 }
-
 
 /* SHOW QUESTION */
 function showQuestion(){
-  selected=null;
-  choicesBox.innerHTML="";
-  questionBox.innerHTML="";
+  const box = document.getElementById("quizBox");
+  const q = questions[current];
+  box.innerHTML = "";
 
-  if(current>=questions.length){
-    clearInterval(timerInt);
-    document.querySelector(".card").innerHTML=`
-      <h2>🎉 Quiz Finished</h2>
-      <p><b>Score:</b> ${score} / ${questions.length}</p>
-      <button onclick="location.href='index.html'">🏠 Home</button>
-    `;
+  if(!q){
+    document.getElementById("result").innerHTML =
+      `✅ Final Score: <b>${score}</b> / ${questions.length}`;
     return;
   }
 
-  const q=questions[current];
-  questionBox.innerHTML=`<p><b>${current+1}. ${q.q}</b></p>`;
-
-  if(q.type==="mc"){
+  if(q.type === "mc"){
+    box.innerHTML += `<p>${q.q}</p>`;
     q.choices.forEach(c=>{
-      const div=document.createElement("div");
-      div.className="choice";
-      div.textContent=c;
-      div.onclick=()=>{
-        document.querySelectorAll(".choice").forEach(x=>x.classList.remove("selected"));
-        div.classList.add("selected");
-        selected=c;
-      };
-      choicesBox.appendChild(div);
+      box.innerHTML += `
+        <label>
+          <input type="radio" name="ans" value="${c}"> ${c}
+        </label><br>`;
     });
-  }else{
-    for(let i=0;i<3;i++){
-      const input=document.createElement("input");
-      input.placeholder="Answer "+(i+1);
-      choicesBox.appendChild(input);
-    }
+  }
+
+  if(q.type === "enum"){
+    box.innerHTML += `
+      <p>${q.q}</p>
+      <input id="e1" placeholder="Answer 1"><br><br>
+      <input id="e2" placeholder="Answer 2"><br>`;
   }
 }
 
 /* NEXT */
-window.nextQuestion=()=>{
-  const q=questions[current];
+function nextQuestion(){
+  const q = questions[current];
 
-  if(q.type==="mc"){
-    if(selected===q.answer) score++;
-  }else{
-    const inputs=[...choicesBox.querySelectorAll("input")];
-    let correct=0;
-    inputs.forEach(i=>{
-      if(q.answers.includes(i.value.toLowerCase())) correct++;
-    });
-    if(correct>=2) score++;
+  if(q.type === "mc"){
+    const sel = document.querySelector("input[name=ans]:checked");
+    if(sel && sel.value === q.answer) score++;
+  }
+
+  if(q.type === "enum"){
+    const a1 = document.getElementById("e1").value.toLowerCase();
+    const a2 = document.getElementById("e2").value.toLowerCase();
+
+    if(q.answers.some(a=>a1.includes(a))) score++;
+    if(q.answers.some(a=>a2.includes(a))) score++;
   }
 
   current++;
   showQuestion();
-};
-
-/* TIMER */
-function startTimer(){
-  timerInt=setInterval(()=>{
-    time--;
-    timer.textContent="Time: "+time;
-    if(time<=0){
-      clearInterval(timerInt);
-      current=questions.length;
-      showQuestion();
-    }
-  },1000);
 }
 
 /* HELPERS */
-function randomWord(arr){
-  return arr[Math.floor(Math.random()*arr.length)]||"example";
+function shuffle(arr){
+  return arr.sort(()=>Math.random()-0.5);
 }
-function shuffle(a){
-  return [...a].sort(()=>Math.random()-0.5);
+function random(arr){
+  return arr[Math.floor(Math.random()*arr.length)];
 }
 </script>
 

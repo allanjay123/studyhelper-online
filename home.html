@@ -363,6 +363,67 @@ window.exportPDFSelected = async ()=>{
 
   pdf.save("studyhelper_selected.pdf");
 };
+  window.exportPDFSelected = async ()=>{
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
+  let y = 10;
+
+  pdf.setFontSize(16);
+  pdf.text("StudyHelper Export", 10, y);
+  y += 10;
+
+  if (pdfNotes.checked) {
+    pdf.setFontSize(14);
+    pdf.text("Notes", 10, y);
+    y += 8;
+
+    const snap = await getDocs(collection(db,"users",uid,"notes"));
+    snap.forEach(d=>{
+      pdf.setFontSize(11);
+      pdf.text(d.data().title, 10, y);
+      y += 6;
+      pdf.text(d.data().body, 12, y);
+      y += 8;
+    });
+  }
+
+  if (pdfTasks.checked) {
+    pdf.addPage();
+    y = 10;
+    pdf.setFontSize(14);
+    pdf.text("Tasks", 10, y);
+    y += 8;
+
+    const snap = await getDocs(collection(db,"users",uid,"tasks"));
+    snap.forEach(d=>{
+      pdf.setFontSize(11);
+      pdf.text("- " + d.data().text, 10, y);
+      y += 6;
+    });
+  }
+
+  if (pdfLessons.checked) {
+    pdf.addPage();
+    y = 10;
+    pdf.setFontSize(14);
+    pdf.text("Lessons", 10, y);
+    y += 8;
+
+    const subs = await getDocs(collection(db,"users",uid,"subjects"));
+    for (const s of subs.docs) {
+      const ls = await getDocs(
+        collection(db,"users",uid,"subjects",s.id,"lessons")
+      );
+      ls.forEach(l=>{
+        pdf.setFontSize(11);
+        pdf.text(`${s.data().name}: ${l.data().title}`, 10, y);
+        y += 6;
+      });
+    }
+  }
+
+  pdf.save("studyhelper_selected.pdf");
+};
 </script>
 </body>
 </html>

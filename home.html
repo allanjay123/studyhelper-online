@@ -7,29 +7,67 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-body{
+/* ================= BASE ================= */
+*{
+  box-sizing:border-box;
+}
+
+html, body{
+  width:100%;
   margin:0;
+  padding:0;
+  overflow-x:hidden;
+}
+
+body{
   font-family:Arial;
   background:linear-gradient(135deg,#667eea,#764ba2);
   min-height:100vh;
 }
-body.dark{background:#121212;}
-body.dark .card,body.dark header,body.dark .menu{
-  background:#1e1e1e;color:#fff;
+
+body.dark{
+  background:#121212;
+}
+body.dark .card,
+body.dark header,
+body.dark .menu{
+  background:#1e1e1e;
+  color:#fff;
 }
 
+/* ================= HEADER ================= */
 header{
   background:#fff;
   padding:10px 20px;
   display:flex;
   justify-content:space-between;
   align-items:center;
+
+  max-width:1200px;
+  margin:0 auto;
 }
-.hamburger{font-size:22px;cursor:pointer;}
 
-.container{max-width:1200px;margin:20px auto;padding:10px;}
-.grid{display:grid;grid-template-columns:2fr 1fr;gap:15px;}
+.hamburger{
+  font-size:22px;
+  cursor:pointer;
+}
 
+/* ================= LAYOUT ================= */
+.container{
+  width:100%;
+  max-width:1200px;
+  margin:20px auto;
+  padding:10px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:15px;
+  width:100%;
+}
+
+/* ================= CARD ================= */
 .card{
   background:#fff;
   padding:15px;
@@ -37,7 +75,11 @@ header{
   margin-bottom:15px;
 }
 
-input,textarea{width:100%;padding:8px;margin-bottom:8px;}
+input, textarea{
+  width:100%;
+  padding:8px;
+  margin-bottom:8px;
+}
 
 button{
   padding:8px 12px;
@@ -47,11 +89,26 @@ button{
   color:white;
   cursor:pointer;
 }
-button.delete{background:#f44336;font-size:12px;margin-left:6px;}
 
-.lesson,.task{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
-.lesson.done,.task.done{text-decoration:line-through;color:#777;}
+button.delete{
+  background:#f44336;
+  font-size:12px;
+  margin-left:6px;
+}
 
+/* ================= TASKS & LESSONS ================= */
+.lesson, .task{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:6px;
+}
+.lesson.done, .task.done{
+  text-decoration:line-through;
+  color:#777;
+}
+
+/* ================= PROGRESS ================= */
 .progress{
   background:#ddd;
   height:8px;
@@ -59,15 +116,19 @@ button.delete{background:#f44336;font-size:12px;margin-left:6px;}
   overflow:hidden;
   margin-top:6px;
 }
-.progress div{background:#4caf50;height:100%;}
+.progress div{
+  background:#4caf50;
+  height:100%;
+}
 
+/* ================= SUBJECT ================= */
 .subject-box{
   border-bottom:1px solid #eee;
   padding-bottom:10px;
   margin-bottom:10px;
 }
 
-/* MENU */
+/* ================= MENU ================= */
 .menu{
   position:fixed;
   top:0;
@@ -77,63 +138,45 @@ button.delete{background:#f44336;font-size:12px;margin-left:6px;}
   background:#fff;
   padding:15px;
   transition:.3s;
-  z-index:100;
+  z-index:1000;
 }
-.menu.open{left:0;}
-.menu button{width:100%;margin-bottom:10px;}
+.menu.open{
+  left:0;
+}
+.menu button{
+  width:100%;
+  margin-bottom:10px;
+}
 
-/* FOCUS MODE */
+/* ================= FOCUS MODE ================= */
 body.focus .delete,
-body.focus header button{display:none;}
-
-@media(max-width:768px){
-  .grid{grid-template-columns:1fr;}
-  header{flex-wrap:wrap;}
-  header div{width:100%;display:flex;justify-content:space-between;}
-  .menu{width:100%;}
-}
-  /* ===============================
-   DESKTOP SITE SPACE FIX
-   =============================== */
-
-/* Remove any viewport overflow */
-html, body {
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
+body.focus header button{
+  display:none;
 }
 
-/* Prevent 100vw bug */
-* {
-  box-sizing: border-box;
+/* ================= MOBILE ================= */
+@media (max-width:768px){
+  .grid{
+    grid-template-columns:1fr;
+  }
+  header{
+    flex-wrap:wrap;
+  }
+  header div{
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+  }
+  .menu{
+    width:100%;
+  }
 }
-
-/* Center content properly on desktop */
-header {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.container {
-  width: 100%;
-  max-width: 1200px;
-  margin: 20px auto;
-  padding: 10px;
-}
-
-/* Grid should never exceed container */
-.grid {
-  width: 100%;
-  margin: 0;
-}
-
 </style>
 </head>
 
 <body>
 
+<!-- MENU -->
 <div class="menu" id="menu">
   <h3>☰ Menu</h3>
   <button onclick="toggleDark()">🌙 Dark Mode</button>
@@ -202,6 +245,7 @@ import {
   deleteDoc, doc, updateDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
+/* FIREBASE */
 const firebaseConfig={
   apiKey:"AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
   authDomain:"studyhelper-app.firebaseapp.com",
@@ -213,6 +257,7 @@ const auth=getAuth(app);
 const db=getFirestore(app);
 let uid;
 
+/* AUTH */
 onAuthStateChanged(auth,user=>{
   if(!user) location.href="index.html";
   uid=user.uid;
@@ -227,6 +272,20 @@ window.openMenu=()=>menu.classList.add("open");
 window.closeMenu=()=>menu.classList.remove("open");
 window.toggleDark=()=>document.body.classList.toggle("dark");
 window.toggleFocus=()=>document.body.classList.toggle("focus");
+
+/* TUTORIAL */
+window.showTutorial=()=>{
+  alert(`📘 STUDYHELPER TUTORIAL
+
+• Register then Sign in
+• Add Notes & Tasks
+• Create Subjects & Lessons
+• Check lessons when done
+• Export notes & tasks to PDF
+• Use Focus Mode to avoid distractions
+
+Happy studying! 📚`);
+};
 
 /* NOTES */
 saveNote.onclick=async()=>{
@@ -320,7 +379,7 @@ function loadSubjects(){
   });
 }
 
-/* EXPORT PDF – FIXED (NO HEADINGS) */
+/* EXPORT PDF */
 window.exportToPDF = async ()=>{
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF();
@@ -340,20 +399,6 @@ window.exportToPDF = async ()=>{
   });
 
   pdf.save("studyhelper.pdf");
-};
-  window.showTutorial = () => {
-  alert(
-`📘 STUDYHELPER TUTORIAL
-
-• first is register, after that is sign in
-• choose any features you like
-• bahala kana
-• melchor 
-• kaw na bahala melchor matanda kana
-• melchor, melchor, melchor 
-
-Happy studying! 📚`
-  );
 };
 </script>
 

@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>StudyHelper | Home</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
@@ -14,27 +13,32 @@ body{
   background:linear-gradient(135deg,#667eea,#764ba2);
   min-height:100vh;
 }
-body.dark{background:#121212;color:#fff}
-header,.card,.menu{background:#fff}
-body.dark header,
-body.dark .card,
-body.dark .menu{background:#1e1e1e;color:#fff}
+body.dark{background:#121212;}
+body.dark .card,body.dark header,body.dark .menu{
+  background:#1e1e1e;color:#fff;
+}
 
 header{
-  padding:10px 15px;
+  background:#fff;
+  padding:10px 20px;
   display:flex;
   justify-content:space-between;
   align-items:center;
 }
 
-.hamburger{font-size:22px;cursor:pointer}
+.hamburger{font-size:22px;cursor:pointer;}
 
-.container{max-width:1200px;margin:20px auto;padding:10px}
-.grid{display:grid;grid-template-columns:2fr 1fr;gap:15px}
+.container{max-width:1200px;margin:20px auto;padding:10px;}
+.grid{display:grid;grid-template-columns:2fr 1fr;gap:15px;}
 
-.card{padding:15px;border-radius:12px;margin-bottom:15px}
+.card{
+  background:#fff;
+  padding:15px;
+  border-radius:12px;
+  margin-bottom:15px;
+}
 
-input,textarea{width:100%;padding:8px;margin-bottom:8px}
+input,textarea{width:100%;padding:8px;margin-bottom:8px;}
 
 button{
   padding:8px 12px;
@@ -45,13 +49,16 @@ button{
   cursor:pointer;
 }
 
-button.delete{background:#f44336;font-size:12px}
+button.delete{background:#f44336;font-size:12px;margin-left:6px;}
 
-.lesson,.task{display:flex;gap:8px;align-items:center}
-.lesson.done,.task.done{text-decoration:line-through;color:#777}
+.lesson,.task{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.lesson.done,.task.done{text-decoration:line-through;color:#777;}
 
-.progress{background:#ddd;height:8px;border-radius:5px;overflow:hidden}
-.progress div{background:#4caf50;height:100%}
+.progress{background:#ddd;height:8px;border-radius:5px;overflow:hidden;margin-top:6px;}
+.progress div{background:#4caf50;height:100%;}
+
+.subject-box{border-bottom:1px solid #eee;padding-bottom:10px;margin-bottom:10px;}
+.subject-header{display:flex;justify-content:space-between;align-items:center;}
 
 /* MENU */
 .menu{
@@ -60,22 +67,24 @@ button.delete{background:#f44336;font-size:12px}
   left:-260px;
   width:260px;
   height:100%;
+  background:#fff;
   padding:15px;
   transition:.3s;
-  z-index:999;
+  z-index:100;
 }
-.menu.open{left:0}
-.menu button{width:100%;margin-bottom:8px}
+.menu.open{left:0;}
+.menu button{width:100%;margin-bottom:10px;}
 
 @media(max-width:768px){
-  .grid{grid-template-columns:1fr}
+  .grid{grid-template-columns:1fr;}
+  .menu{width:100%;}
 }
 </style>
 </head>
 
 <body>
 
-<!-- 🍔 MENU -->
+<!-- 🔥 HAMBURGER MENU -->
 <div class="menu" id="menu">
   <h3>☰ Menu</h3>
 
@@ -86,15 +95,17 @@ button.delete{background:#f44336;font-size:12px}
   <hr>
 
   <strong>📦 Export Selected</strong><br><br>
-  <label><input type="checkbox" id="exNotes" checked> Notes</label><br>
-  <label><input type="checkbox" id="exTasks"> Tasks</label><br>
-  <label><input type="checkbox" id="exLessons"> Lessons</label><br><br>
+
+  <label><input type="checkbox" id="exportNotes" checked> Notes</label><br>
+  <label><input type="checkbox" id="exportTasks"> Tasks</label><br>
+  <label><input type="checkbox" id="exportLessons"> Lessons</label><br><br>
 
   <button onclick="exportSelectedData()">⬇ Export Selected</button>
 
   <hr>
+
   <button onclick="showTutorial()">📘 Tutorial</button>
-  <button onclick="closeMenu()">❌ Close</button>
+  <button onclick="closeMenu()">❌ Exit</button>
 </div>
 
 <header>
@@ -116,7 +127,7 @@ button.delete{background:#f44336;font-size:12px}
     <h3>Add Note</h3>
     <input id="noteTitle" placeholder="Title">
     <textarea id="noteBody" placeholder="Your note"></textarea>
-    <button id="saveNote">Save</button>
+    <button id="saveNote">Save Note</button>
   </div>
 
   <div class="card">
@@ -127,7 +138,7 @@ button.delete{background:#f44336;font-size:12px}
   <div class="card">
     <h3>Tasks</h3>
     <input id="taskInput" placeholder="New task">
-    <button id="addTask">Add</button>
+    <button id="addTask">Add Task</button>
     <div id="tasksList"></div>
   </div>
 </div>
@@ -150,8 +161,11 @@ button.delete{background:#f44336;font-size:12px}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getAuth,onAuthStateChanged,signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { getFirestore,collection,addDoc,onSnapshot,deleteDoc,doc,updateDoc,getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import {
+  getFirestore, collection, addDoc, onSnapshot,
+  deleteDoc, doc, updateDoc, getDocs
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 const firebaseConfig={
   apiKey:"AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
@@ -164,10 +178,11 @@ const auth=getAuth(app);
 const db=getFirestore(app);
 let uid;
 
-onAuthStateChanged(auth,u=>{
-  if(!u) location.href="index.html";
-  uid=u.uid;
-  loadNotes(); loadTasks(); loadSubjects();
+/* AUTH */
+onAuthStateChanged(auth,user=>{
+  if(!user) location.href="index.html";
+  uid=user.uid;
+  loadNotes();loadTasks();loadSubjects();
 });
 logout.onclick=()=>signOut(auth);
 
@@ -176,26 +191,110 @@ window.openMenu=()=>menu.classList.add("open");
 window.closeMenu=()=>menu.classList.remove("open");
 window.toggleDark=()=>document.body.classList.toggle("dark");
 window.toggleFocus=()=>document.body.classList.toggle("focus");
-window.showTutorial=()=>alert("📘 Add notes, tasks & lessons.\nUse export to backup data.");
+window.showTutorial=()=>alert("📘 StudyHelper Tutorial");
 
-/* EXPORT SELECTED ✅ */
+/* NOTES */
+saveNote.onclick=async()=>{
+  if(!noteTitle.value||!noteBody.value) return;
+  await addDoc(collection(db,"users",uid,"notes"),{
+    title:noteTitle.value,body:noteBody.value
+  });
+  noteTitle.value="";noteBody.value="";
+};
+
+function loadNotes(){
+  onSnapshot(collection(db,"users",uid,"notes"),snap=>{
+    notesList.innerHTML="";
+    snap.forEach(d=>{
+      const div=document.createElement("div");
+      div.innerHTML=`<strong>${d.data().title}</strong><p>${d.data().body}</p>`;
+      const del=document.createElement("button");
+      del.textContent="Delete";del.className="delete";
+      del.onclick=()=>deleteDoc(doc(db,"users",uid,"notes",d.id));
+      div.appendChild(del);
+      notesList.appendChild(div);
+    });
+  });
+}
+
+/* TASKS */
+addTask.onclick=async()=>{
+  if(!taskInput.value) return;
+  await addDoc(collection(db,"users",uid,"tasks"),{text:taskInput.value,done:false});
+  taskInput.value="";
+};
+
+function loadTasks(){
+  onSnapshot(collection(db,"users",uid,"tasks"),snap=>{
+    tasksList.innerHTML="";
+    snap.forEach(d=>{
+      const t=d.data();
+      const row=document.createElement("div");
+      row.className="task"+(t.done?" done":"");
+      const cb=document.createElement("input");
+      cb.type="checkbox";cb.checked=t.done;
+      cb.onchange=()=>updateDoc(doc(db,"users",uid,"tasks",d.id),{done:cb.checked});
+      const del=document.createElement("button");
+      del.textContent="X";del.className="delete";
+      del.onclick=()=>deleteDoc(doc(db,"users",uid,"tasks",d.id));
+      row.append(cb,t.text,del);
+      tasksList.appendChild(row);
+    });
+  });
+}
+
+/* SUBJECTS + LESSONS */
+function loadSubjects(){
+  onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
+    subjectsMastery.innerHTML="";lessonsList.innerHTML="";
+    snap.forEach(s=>{
+      const sid=s.id,sName=s.data().name;
+      const box=document.createElement("div");
+      box.className="subject-box";
+      box.innerHTML=`<strong>${sName}</strong>`;
+      onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
+        let done=0;
+        ls.forEach(l=>{
+          const d=l.data();
+          if(d.completed) done++;
+          const row=document.createElement("div");
+          row.className="lesson"+(d.completed?" done":"");
+          const cb=document.createElement("input");
+          cb.type="checkbox";cb.checked=d.completed;
+          cb.onchange=()=>updateDoc(doc(db,"users",uid,"subjects",sid,"lessons",l.id),{completed:cb.checked});
+          row.append(cb,`${sName}: ${d.title}`);
+          lessonsList.appendChild(row);
+        });
+        const percent=ls.size?Math.round(done/ls.size*100):0;
+        box.innerHTML+=`<div class="progress"><div style="width:${percent}%"></div></div>`;
+        subjectsMastery.appendChild(box);
+      });
+    });
+  });
+}
+
+/* ✅ EXPORT SELECTED */
 window.exportSelectedData = async ()=>{
   const data={};
 
-  if(exNotes.checked){
-    const s=await getDocs(collection(db,"users",uid,"notes"));
-    data.notes=s.docs.map(d=>({id:d.id,...d.data()}));
+  if(exportNotes.checked){
+    const snap=await getDocs(collection(db,"users",uid,"notes"));
+    data.notes=snap.docs.map(d=>d.data());
   }
-  if(exTasks.checked){
-    const s=await getDocs(collection(db,"users",uid,"tasks"));
-    data.tasks=s.docs.map(d=>({id:d.id,...d.data()}));
+
+  if(exportTasks.checked){
+    const snap=await getDocs(collection(db,"users",uid,"tasks"));
+    data.tasks=snap.docs.map(d=>d.data());
   }
-  if(exLessons.checked){
-    const subs=await getDocs(collection(db,"users",uid,"subjects"));
+
+  if(exportLessons.checked){
     data.lessons=[];
+    const subs=await getDocs(collection(db,"users",uid,"subjects"));
     for(const s of subs.docs){
       const ls=await getDocs(collection(db,"users",uid,"subjects",s.id,"lessons"));
-      ls.forEach(l=>data.lessons.push({...l.data(),subject:s.data().name}));
+      ls.forEach(l=>data.lessons.push({
+        subject:s.data().name,...l.data()
+      }));
     }
   }
 
@@ -206,27 +305,19 @@ window.exportSelectedData = async ()=>{
   a.click();
 };
 
-/* NOTES / TASKS / SUBJECTS (unchanged logic) */
-saveNote.onclick=()=>addDoc(collection(db,"users",uid,"notes"),{title:noteTitle.value,body:noteBody.value});
-addTask.onclick=()=>addDoc(collection(db,"users",uid,"tasks"),{text:taskInput.value,done:false});
-
-function loadNotes(){
-  onSnapshot(collection(db,"users",uid,"notes"),s=>{
-    notesList.innerHTML="";
-    s.forEach(d=>{
-      notesList.innerHTML+=`<div><b>${d.data().title}</b><p>${d.data().body}</p></div>`;
-    });
+/* PDF */
+window.exportToPDF = async ()=>{
+  const { jsPDF }=window.jspdf;
+  const pdf=new jsPDF();
+  let y=10;
+  pdf.text("STUDYHELPER EXPORT",10,y);y+=10;
+  const snap=await getDocs(collection(db,"users",uid,"notes"));
+  snap.forEach(d=>{
+    pdf.text(d.data().title,10,y);y+=6;
+    pdf.text(d.data().body,12,y);y+=8;
   });
-}
-function loadTasks(){
-  onSnapshot(collection(db,"users",uid,"tasks"),s=>{
-    tasksList.innerHTML="";
-    s.forEach(d=>{
-      tasksList.innerHTML+=`<div>${d.data().text}</div>`;
-    });
-  });
-}
-function loadSubjects(){/* same logic as before */}
+  pdf.save("studyhelper.pdf");
+};
 </script>
 </body>
 </html>

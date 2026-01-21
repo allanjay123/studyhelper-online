@@ -27,13 +27,17 @@ body{
   margin-bottom:6px;
   cursor:pointer;
 }
-.choice:hover{background:#eee}
-.choice.selected{background:#c8e6c9}
-.timer{color:#f44336;font-weight:bold}
+.choice.selected{
+  background:#c8e6c9;
+}
+.timer{
+  font-weight:bold;
+  color:#f44336;
+}
 input{
   width:100%;
   padding:8px;
-  margin-bottom:6px;
+  margin-bottom:8px;
 }
 button{
   padding:8px 12px;
@@ -58,36 +62,59 @@ button{
   <button id="nextBtn">Next</button>
 </div>
 
-<script>
-/* ---------------- VARIABLES ---------------- */
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+/* FIREBASE */
+const firebaseConfig={
+  apiKey:"AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
+  authDomain:"studyhelper-app.firebaseapp.com",
+  projectId:"studyhelper-app"
+};
+
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+
+const params=new URLSearchParams(location.search);
+const noteId=params.get("noteId");
+
+let uid;
 let questions=[];
 let current=0;
 let score=0;
 let selected=null;
 let time=60;
+let timerInterval;
 
-/* ---------------- TIMER ---------------- */
-const timerEl=document.getElementById("timer");
-setInterval(()=>{
-  time--;
-  timerEl.textContent="Time: "+time;
-  if(time<=0) finishQuiz();
-},1000);
+/* AUTH */
+onAuthStateChanged(auth, async user=>{
+  if(!user){ location.href="index.html"; return; }
+  uid=user.uid;
+  loadNote();
+});
 
-/* ---------------- SAMPLE NOTE ---------------- */
-/* para gumana kahit walang firebase */
-const noteText = `
-Database systems store, manage, and retrieve large amounts of data.
-They are used in schools, hospitals, and businesses.
-Important terms include tables, records, fields, and queries.
-`;
+/* LOAD NOTE */
+async function loadNote(){
+  const snap=await getDoc(doc(db,"users",uid,"notes",noteId));
+  if(!snap.exists()){ alert("Note not found"); return; }
 
-/* ---------------- GENERATE QUIZ ---------------- */
+  const note=snap.data();
+  quizTitle.textContent="🧠 Quiz: "+note.title;
+  generateQuiz(note.body);
+  startTimer();
+  showQuestion();
+}
+
+/* GENERATE MIX QUIZ */
 function generateQuiz(text){
-  const clean=text.toLowerCase().replace(/[^a-z ]/g,"");
-  const words=[...new Set(clean.split(" ").filter(w=>w.length>5))];
+  questions=[];
+  const clean=text.replace(/\n/g," ");
+  const words=clean.split(" ").filter(w=>w.length>5);
 
-  // Multiple choice (3)
+  // MULTIPLE CHOICE (3)
   for(let i=0;i<3;i++){
     const answer=words[Math.floor(Math.random()*words.length)];
     const choices=shuffle([
@@ -104,29 +131,25 @@ function generateQuiz(text){
     });
   }
 
-  // Enumeration (1)
+  // ENUMERATION (1)
   questions.push({
     type:"enum",
-    q:"List THREE important terms mentioned in the note.",
-    answers:shuffle(words).slice(0,3)
+    q:"List THREE important words from the note",
+    answers:shuffle([...new Set(words)]).slice(0,3)
   });
 }
 
-function randomWord(arr){
-  return arr[Math.floor(Math.random()*arr.length)];
-}
-function shuffle(arr){
-  return arr.sort(()=>Math.random()-0.5);
-}
-
-/* ---------------- SHOW QUESTION ---------------- */
+/* SHOW QUESTION */
 function showQuestion(){
-  const q=questions[current];
-  const qBox=document.getElementById("questionBox");
-  const choicesBox=document.getElementById("choices");
-  qBox.innerHTML=`<h3>${q.q}</h3>`;
-  choicesBox.innerHTML="";
+  if(current>=questions.length){
+    showScore();
+    return;
+  }
+
   selected=null;
+  const q=questions[current];
+  questionBox.innerHTML="<h3>"+q.q+"</h3>";
+  choices.innerHTML="";
 
   if(q.type==="mc"){
     q.choices.forEach(c=>{
@@ -138,7 +161,7 @@ function showQuestion(){
         div.classList.add("selected");
         selected=c;
       };
-      choicesBox.appendChild(div);
+      choices.appendChild(div);
     });
   }
 
@@ -146,45 +169,57 @@ function showQuestion(){
     for(let i=0;i<3;i++){
       const input=document.createElement("input");
       input.placeholder="Answer "+(i+1);
-      choicesBox.appendChild(input);
+      choices.appendChild(input);
     }
   }
 }
 
-/* ---------------- NEXT BUTTON ---------------- */
-document.getElementById("nextBtn").onclick=()=>{
+/* NEXT */
+nextBtn.onclick=()=>{
   const q=questions[current];
 
   if(q.type==="mc" && selected===q.answer) score++;
 
   if(q.type==="enum"){
-    const inputs=[...document.querySelectorAll("input")].map(i=>i.value.toLowerCase());
+    const inputs=[...choices.querySelectorAll("input")];
     let correct=0;
-    q.answers.forEach(a=>{
-      if(inputs.includes(a)) correct++;
+    inputs.forEach(i=>{
+      if(q.answers.includes(i.value.toLowerCase())) correct++;
     });
     if(correct>=2) score++;
   }
 
   current++;
-  if(current<questions.length){
-    showQuestion();
-  }else{
-    finishQuiz();
-  }
+  showQuestion();
 };
 
-/* ---------------- FINISH ---------------- */
-function finishQuiz(){
-  document.querySelector(".card").innerHTML=`
-    <h2>Quiz Finished 🎉</h2>
-    <p>Score: ${score} / ${questions.length}</p>
-  `;
+/* SCORE */
+function showScore(){
+  clearInterval(timerInterval);
+  questionBox.innerHTML="<h2>✅ Quiz Finished</h2>";
+  choices.innerHTML="<p>Your Score: <b>"+score+" / "+questions.length+"</b></p>";
+  nextBtn.style.display="none";
 }
 
-/* ---------------- START ---------------- */
-generateQuiz(noteText);
-showQuestion();
+/* TIMER */
+function startTimer(){
+  timerInterval=setInterval(()=>{
+    time--;
+    timer.textContent="Time: "+time;
+    if(time<=0){
+      clearInterval(timerInterval);
+      showScore();
+    }
+  },1000);
+}
+
+/* HELPERS */
+function randomWord(arr){
+  return arr[Math.floor(Math.random()*arr.length)];
+}
+function shuffle(arr){
+  return arr.sort(()=>Math.random()-0.5);
+}
 </script>
 
 </body>

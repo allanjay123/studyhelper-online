@@ -1,39 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>StudyHelper | Quiz</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 body{
-  font-family:Arial,sans-serif;
+  font-family:Arial;
   background:linear-gradient(135deg,#667eea,#764ba2);
   min-height:100vh;
-  margin:0;
   padding:20px;
 }
 .card{
-  background:#fff;
-  padding:20px;
-  border-radius:12px;
+  background:white;
   max-width:700px;
   margin:auto;
+  padding:20px;
+  border-radius:12px;
 }
 .choice{
-  padding:10px;
   border:1px solid #ccc;
+  padding:10px;
   border-radius:6px;
-  margin-bottom:8px;
+  margin-bottom:6px;
   cursor:pointer;
 }
 .choice.selected{background:#c8e6c9}
-.timer{color:#f44336;font-weight:bold}
+.timer{color:red;font-weight:bold}
 button{
-  padding:10px 14px;
   background:#4caf50;
   color:white;
   border:none;
+  padding:10px;
   border-radius:6px;
   cursor:pointer;
 }
@@ -47,8 +46,8 @@ input{width:100%;padding:8px;margin-bottom:6px}
   <button onclick="history.back()">⬅ Back</button>
   <h2 id="title">🧠 Quiz</h2>
   <div class="timer" id="timer">Time: 300</div>
-  <div id="qBox"></div>
-  <div id="cBox"></div>
+  <div id="q"></div>
+  <div id="c"></div>
   <button onclick="next()">Next</button>
 </div>
 
@@ -58,57 +57,55 @@ input{width:100%;padding:8px;margin-bottom:6px}
 <script>
 firebase.initializeApp({
   apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
-  authDomain: "studyhelper-app.firebaseapp.com",
   projectId: "studyhelper-app"
 });
 const db=firebase.firestore();
 
 const id=new URLSearchParams(location.search).get("noteId");
-let Q=[],i=0,score=0,selected=null,time=300;
+let Q=[],i=0,score=0,sel=null,time=300;
 
-db.collection("notes").doc(id).get().then(doc=>{
-  const note=doc.data();
-  title.textContent="🧠 "+note.title;
-  generate(note.body);
+db.collection("notes").doc(id).get().then(d=>{
+  if(!d.exists){alert("Note not found");return;}
+  title.textContent="🧠 "+d.data().title;
+  buildQuiz(d.data().body);
   show();
-  startTimer();
+  setInterval(()=>{
+    time--;timer.textContent="Time: "+time;
+    if(time<=0) finish();
+  },1000);
 });
 
-function generate(text){
+function buildQuiz(text){
   const s=text.split(".").map(x=>x.trim()).filter(x=>x.split(" ").length>6);
   const w=text.toLowerCase().replace(/[^a-z ]/g,"").split(" ").filter(x=>x.length>4);
-  const uniq=[...new Set(w)];
+  const k=[...new Set(w)];
 
   s.forEach(line=>{
     const words=line.split(" ").filter(x=>x.length>4);
-    const ans=words[Math.floor(Math.random()*words.length)];
+    const a=words[Math.floor(Math.random()*words.length)];
     Q.push({
-      type:"mc",
-      q:line.replace(ans,"_____"),
-      a:ans,
-      c:shuffle([ans,random(uniq),random(uniq),random(uniq)])
+      t:"mc",
+      q:line.replace(a,"_____"),
+      a,
+      c:shuffle([a,rand(k),rand(k),rand(k)])
     });
   });
 
   Q.push({
-    type:"enum",
-    q:"Based on the lesson, write THREE key terms:",
-    a:shuffle(uniq).slice(0,3)
+    t:"enum",
+    q:"Write THREE important ideas from the lesson:",
+    a:shuffle(k).slice(0,3)
   });
 
   Q=shuffle(Q).slice(0,15);
 }
 
 function show(){
-  selected=null;
-  cBox.innerHTML="";
-  if(i>=Q.length){
-    box.innerHTML=`<h2>Finished</h2><p>Score: ${score}/${Q.length}</p>`;
-    return;
-  }
-  qBox.innerHTML=`<b>${i+1}. ${Q[i].q}</b>`;
+  sel=null;c.innerHTML="";
+  if(i>=Q.length){finish();return;}
+  q.innerHTML=`<b>${i+1}. ${Q[i].q}</b>`;
 
-  if(Q[i].type==="mc"){
+  if(Q[i].t==="mc"){
     Q[i].c.forEach(x=>{
       const d=document.createElement("div");
       d.className="choice";
@@ -116,38 +113,33 @@ function show(){
       d.onclick=()=>{
         document.querySelectorAll(".choice").forEach(e=>e.classList.remove("selected"));
         d.classList.add("selected");
-        selected=x;
+        sel=x;
       };
-      cBox.appendChild(d);
+      c.appendChild(d);
     });
   }else{
-    for(let k=1;k<=3;k++){
-      cBox.innerHTML+=`<input placeholder="Answer ${k}">`;
-    }
+    for(let n=1;n<=3;n++) c.innerHTML+=`<input placeholder="Answer ${n}">`;
   }
 }
 
 function next(){
-  const q=Q[i];
-  if(q.type==="mc" && selected===q.a) score++;
-  if(q.type==="enum"){
+  const qn=Q[i];
+  if(qn.t==="mc" && sel===qn.a) score++;
+  if(qn.t==="enum"){
     let hit=0;
-    [...cBox.querySelectorAll("input")].forEach(x=>{
-      if(q.a.includes(x.value.toLowerCase())) hit++;
+    [...c.querySelectorAll("input")].forEach(x=>{
+      if(qn.a.includes(x.value.toLowerCase())) hit++;
     });
     if(hit>=2) score++;
   }
-  i++; show();
+  i++;show();
 }
 
-function startTimer(){
-  setInterval(()=>{
-    time--; timer.textContent="Time: "+time;
-    if(time<=0) show();
-  },1000);
+function finish(){
+  box.innerHTML=`<h2>Finished</h2><p>Score: ${score}/${Q.length}</p>`;
 }
 
-function random(a){return a[Math.floor(Math.random()*a.length)]||"example"}
+function rand(a){return a[Math.floor(Math.random()*a.length)]||"example"}
 function shuffle(a){return a.sort(()=>Math.random()-0.5)}
 </script>
 

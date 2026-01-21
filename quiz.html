@@ -7,190 +7,148 @@
 
 <style>
 body{
-  margin:0;
-  font-family:Arial, sans-serif;
+  font-family:Arial,sans-serif;
   background:linear-gradient(135deg,#667eea,#764ba2);
+  min-height:100vh;
+  margin:0;
+  padding:20px;
 }
-.container{
-  max-width:800px;
-  margin:40px auto;
+.card{
   background:#fff;
   padding:20px;
-  border-radius:10px;
+  border-radius:12px;
+  max-width:700px;
+  margin:auto;
 }
-button{
-  padding:10px 20px;
-  background:#4CAF50;
-  color:#fff;
-  border:none;
-  border-radius:5px;
+.choice{
+  padding:10px;
+  border:1px solid #ccc;
+  border-radius:6px;
+  margin-bottom:8px;
   cursor:pointer;
 }
-button:hover{opacity:.9}
-.back{
-  background:#888;
-  margin-bottom:10px;
+.choice.selected{background:#c8e6c9}
+.timer{color:#f44336;font-weight:bold}
+button{
+  padding:10px 14px;
+  background:#4caf50;
+  color:white;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
 }
+input{width:100%;padding:8px;margin-bottom:6px}
 </style>
 </head>
 
-<body onload="loadLatestNote()">
+<body>
 
-<div class="container">
-  <button class="back" onclick="history.back()">⬅ Back</button>
-
-  <h2>Generated Quiz</h2>
-  <div id="quizBox">Loading quiz...</div>
-  <br>
-  <button onclick="nextQuestion()">Next</button>
-  <p id="result"></p>
+<div class="card" id="box">
+  <button onclick="history.back()">⬅ Back</button>
+  <h2 id="title">🧠 Quiz</h2>
+  <div class="timer" id="timer">Time: 300</div>
+  <div id="qBox"></div>
+  <div id="cBox"></div>
+  <button onclick="next()">Next</button>
 </div>
 
-<!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
-/* 🔥 FIREBASE CONFIG (SA'YO ITO) */
-const firebaseConfig = {
+firebase.initializeApp({
   apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
   authDomain: "studyhelper-app.firebaseapp.com",
-  projectId: "studyhelper-app",
-  storageBucket: "studyhelper-app.firebasestorage.app",
-  messagingSenderId: "390954392930",
-  appId: "1:390954392930:web:4c7ebc6a37112e98dce03b"
-};
+  projectId: "studyhelper-app"
+});
+const db=firebase.firestore();
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const id=new URLSearchParams(location.search).get("noteId");
+let Q=[],i=0,score=0,selected=null,time=300;
 
-/* QUIZ LOGIC */
-let questions = [];
-let current = 0;
-let score = 0;
+db.collection("notes").doc(id).get().then(doc=>{
+  const note=doc.data();
+  title.textContent="🧠 "+note.title;
+  generate(note.body);
+  show();
+  startTimer();
+});
 
-/* LOAD NOTE ONLINE */
-async function loadLatestNote(){
-  const snap = await db.collection("notes")
-    .orderBy("createdAt","desc")
-    .limit(1)
-    .get();
+function generate(text){
+  const s=text.split(".").map(x=>x.trim()).filter(x=>x.split(" ").length>6);
+  const w=text.toLowerCase().replace(/[^a-z ]/g,"").split(" ").filter(x=>x.length>4);
+  const uniq=[...new Set(w)];
 
-  if(snap.empty){
-    document.getElementById("quizBox").innerHTML =
-      "❌ No notes found";
-    return;
-  }
-
-  const noteText = snap.docs[0].data().body;
-  generateQuiz(noteText);
-  showQuestion();
-}
-
-/* AUTO QUIZ GENERATOR */
-function generateQuiz(text){
-  questions = [];
-  score = 0;
-  current = 0;
-
-  const sentences = text
-    .replace(/\n/g," ")
-    .split(".")
-    .map(s=>s.trim())
-    .filter(s=>s.length > 25);
-
-  const keywords = [...new Set(
-    text.toLowerCase().match(/\b[a-z]{5,}\b/g)
-  )];
-
-  /* MULTIPLE CHOICE */
-  sentences.forEach(s=>{
-    if(questions.length >= 7) return;
-
-    const words = s.split(" ").filter(w=>w.length > 5);
-    if(words.length < 2) return;
-
-    const answer = words[0];
-
-    questions.push({
+  s.forEach(line=>{
+    const words=line.split(" ").filter(x=>x.length>4);
+    const ans=words[Math.floor(Math.random()*words.length)];
+    Q.push({
       type:"mc",
-      q: s.replace(answer,"_____"),
-      choices: shuffle([
-        answer,
-        random(keywords),
-        random(keywords),
-        random(keywords)
-      ]),
-      answer
+      q:line.replace(ans,"_____"),
+      a:ans,
+      c:shuffle([ans,random(uniq),random(uniq),random(uniq)])
     });
   });
 
-  /* ENUMERATION */
-  questions.push({
+  Q.push({
     type:"enum",
-    q:"Mention TWO important ideas found in the note.",
-    answers: keywords.slice(0,2)
+    q:"Based on the lesson, write THREE key terms:",
+    a:shuffle(uniq).slice(0,3)
   });
+
+  Q=shuffle(Q).slice(0,15);
 }
 
-/* SHOW QUESTION */
-function showQuestion(){
-  const box = document.getElementById("quizBox");
-  const q = questions[current];
-  box.innerHTML = "";
-
-  if(!q){
-    document.getElementById("result").innerHTML =
-      `✅ Final Score: <b>${score}</b> / ${questions.length}`;
+function show(){
+  selected=null;
+  cBox.innerHTML="";
+  if(i>=Q.length){
+    box.innerHTML=`<h2>Finished</h2><p>Score: ${score}/${Q.length}</p>`;
     return;
   }
+  qBox.innerHTML=`<b>${i+1}. ${Q[i].q}</b>`;
 
-  if(q.type === "mc"){
-    box.innerHTML += `<p>${q.q}</p>`;
-    q.choices.forEach(c=>{
-      box.innerHTML += `
-        <label>
-          <input type="radio" name="ans" value="${c}"> ${c}
-        </label><br>`;
+  if(Q[i].type==="mc"){
+    Q[i].c.forEach(x=>{
+      const d=document.createElement("div");
+      d.className="choice";
+      d.textContent=x;
+      d.onclick=()=>{
+        document.querySelectorAll(".choice").forEach(e=>e.classList.remove("selected"));
+        d.classList.add("selected");
+        selected=x;
+      };
+      cBox.appendChild(d);
     });
-  }
-
-  if(q.type === "enum"){
-    box.innerHTML += `
-      <p>${q.q}</p>
-      <input id="e1" placeholder="Answer 1"><br><br>
-      <input id="e2" placeholder="Answer 2"><br>`;
+  }else{
+    for(let k=1;k<=3;k++){
+      cBox.innerHTML+=`<input placeholder="Answer ${k}">`;
+    }
   }
 }
 
-/* NEXT */
-function nextQuestion(){
-  const q = questions[current];
-
-  if(q.type === "mc"){
-    const sel = document.querySelector("input[name=ans]:checked");
-    if(sel && sel.value === q.answer) score++;
+function next(){
+  const q=Q[i];
+  if(q.type==="mc" && selected===q.a) score++;
+  if(q.type==="enum"){
+    let hit=0;
+    [...cBox.querySelectorAll("input")].forEach(x=>{
+      if(q.a.includes(x.value.toLowerCase())) hit++;
+    });
+    if(hit>=2) score++;
   }
-
-  if(q.type === "enum"){
-    const a1 = document.getElementById("e1").value.toLowerCase();
-    const a2 = document.getElementById("e2").value.toLowerCase();
-
-    if(q.answers.some(a=>a1.includes(a))) score++;
-    if(q.answers.some(a=>a2.includes(a))) score++;
-  }
-
-  current++;
-  showQuestion();
+  i++; show();
 }
 
-/* HELPERS */
-function shuffle(arr){
-  return arr.sort(()=>Math.random()-0.5);
+function startTimer(){
+  setInterval(()=>{
+    time--; timer.textContent="Time: "+time;
+    if(time<=0) show();
+  },1000);
 }
-function random(arr){
-  return arr[Math.floor(Math.random()*arr.length)];
-}
+
+function random(a){return a[Math.floor(Math.random()*a.length)]||"example"}
+function shuffle(a){return a.sort(()=>Math.random()-0.5)}
 </script>
 
 </body>

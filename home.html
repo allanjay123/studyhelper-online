@@ -92,6 +92,24 @@ body.focus header button{display:none;}
   header div{width:100%;display:flex;justify-content:space-between;}
   .menu{width:100%;}
 }
+  /* ✅ DESKTOP SPACE FIX – FINAL */
+html, body {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+header,
+.container {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.grid {
+  width: 100%;
+}
 </style>
 </head>
 
@@ -102,6 +120,7 @@ body.focus header button{display:none;}
   <button onclick="toggleDark()">🌙 Dark Mode</button>
   <button onclick="exportToPDF()">📕 Export to PDF</button>
   <button onclick="toggleFocus()">🎯 Focus Mode</button>
+  <button onclick="showTutorial()">📘 Tutorial</button>
   <button onclick="closeMenu()">❌ Exit</button>
 </div>
 
@@ -302,6 +321,20 @@ window.exportToPDF = async ()=>{
   });
 
   pdf.save("studyhelper.pdf");
+};
+  window.showTutorial = () => {
+  alert(
+`📘 STUDYHELPER TUTORIAL
+
+• first is register, after that is sign in
+• choose any features you like
+• bahala kana
+• melchor 
+• kaw na bahala melchor matanda kana
+• melchor, melchor, melchor 
+
+Happy studying! 📚`
+  );
 };
 </script>
 

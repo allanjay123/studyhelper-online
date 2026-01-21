@@ -8,46 +8,32 @@
 <style>
 body{
   font-family:Arial;
-  background:linear-gradient(135deg,#667eea,#764ba2);
-  min-height:100vh;
+  background:#764ba2;
   padding:20px;
 }
-.card{
+.box{
   background:white;
-  max-width:700px;
+  max-width:600px;
   margin:auto;
   padding:20px;
-  border-radius:12px;
+  border-radius:10px;
 }
 .choice{
   border:1px solid #ccc;
-  padding:10px;
-  border-radius:6px;
+  padding:8px;
   margin-bottom:6px;
   cursor:pointer;
 }
 .choice.selected{background:#c8e6c9}
-.timer{color:red;font-weight:bold}
-button{
-  background:#4caf50;
-  color:white;
-  border:none;
-  padding:10px;
-  border-radius:6px;
-  cursor:pointer;
-}
-input{width:100%;padding:8px;margin-bottom:6px}
 </style>
 </head>
 
 <body>
 
-<div class="card" id="box">
+<div class="box" id="box">
   <button onclick="history.back()">⬅ Back</button>
-  <h2 id="title">🧠 Quiz</h2>
-  <div class="timer" id="timer">Time: 300</div>
-  <div id="q"></div>
-  <div id="c"></div>
+  <h2 id="q"></h2>
+  <div id="choices"></div>
   <button onclick="next()">Next</button>
 </div>
 
@@ -59,84 +45,61 @@ firebase.initializeApp({
   apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
   projectId: "studyhelper-app"
 });
+
 const db=firebase.firestore();
+const id=new URLSearchParams(location.search).get("id");
 
-const id=new URLSearchParams(location.search).get("noteId");
-let Q=[],i=0,score=0,sel=null,time=300;
+let Q=[],i=0,score=0,selected=null;
 
-db.collection("notes").doc(id).get().then(d=>{
-  if(!d.exists){alert("Note not found");return;}
-  title.textContent="🧠 "+d.data().title;
-  buildQuiz(d.data().body);
+db.collection("notes").doc(id).get().then(doc=>{
+  if(!doc.exists){
+    alert("Note not found");
+    return;
+  }
+  build(doc.data().body);
   show();
-  setInterval(()=>{
-    time--;timer.textContent="Time: "+time;
-    if(time<=0) finish();
-  },1000);
 });
 
-function buildQuiz(text){
-  const s=text.split(".").map(x=>x.trim()).filter(x=>x.split(" ").length>6);
+function build(text){
+  const s=text.split(".").filter(x=>x.split(" ").length>5);
   const w=text.toLowerCase().replace(/[^a-z ]/g,"").split(" ").filter(x=>x.length>4);
-  const k=[...new Set(w)];
 
   s.forEach(line=>{
-    const words=line.split(" ").filter(x=>x.length>4);
-    const a=words[Math.floor(Math.random()*words.length)];
+    const ws=line.split(" ").filter(x=>x.length>4);
+    const ans=ws[Math.floor(Math.random()*ws.length)];
     Q.push({
-      t:"mc",
-      q:line.replace(a,"_____"),
-      a,
-      c:shuffle([a,rand(k),rand(k),rand(k)])
+      q: line.replace(ans,"_____"),
+      a: ans,
+      c: shuffle([ans,rand(w),rand(w),rand(w)])
     });
   });
-
-  Q.push({
-    t:"enum",
-    q:"Write THREE important ideas from the lesson:",
-    a:shuffle(k).slice(0,3)
-  });
-
-  Q=shuffle(Q).slice(0,15);
 }
 
 function show(){
-  sel=null;c.innerHTML="";
-  if(i>=Q.length){finish();return;}
-  q.innerHTML=`<b>${i+1}. ${Q[i].q}</b>`;
-
-  if(Q[i].t==="mc"){
-    Q[i].c.forEach(x=>{
-      const d=document.createElement("div");
-      d.className="choice";
-      d.textContent=x;
-      d.onclick=()=>{
-        document.querySelectorAll(".choice").forEach(e=>e.classList.remove("selected"));
-        d.classList.add("selected");
-        sel=x;
-      };
-      c.appendChild(d);
-    });
-  }else{
-    for(let n=1;n<=3;n++) c.innerHTML+=`<input placeholder="Answer ${n}">`;
+  selected=null;
+  if(i>=Q.length){
+    box.innerHTML=`<h2>Score: ${score}/${Q.length}</h2>`;
+    return;
   }
+  q.textContent=Q[i].q;
+  choices.innerHTML="";
+  Q[i].c.forEach(x=>{
+    const d=document.createElement("div");
+    d.className="choice";
+    d.textContent=x;
+    d.onclick=()=>{
+      document.querySelectorAll(".choice").forEach(e=>e.classList.remove("selected"));
+      d.classList.add("selected");
+      selected=x;
+    };
+    choices.appendChild(d);
+  });
 }
 
 function next(){
-  const qn=Q[i];
-  if(qn.t==="mc" && sel===qn.a) score++;
-  if(qn.t==="enum"){
-    let hit=0;
-    [...c.querySelectorAll("input")].forEach(x=>{
-      if(qn.a.includes(x.value.toLowerCase())) hit++;
-    });
-    if(hit>=2) score++;
-  }
-  i++;show();
-}
-
-function finish(){
-  box.innerHTML=`<h2>Finished</h2><p>Score: ${score}/${Q.length}</p>`;
+  if(selected===Q[i].a) score++;
+  i++;
+  show();
 }
 
 function rand(a){return a[Math.floor(Math.random()*a.length)]||"example"}

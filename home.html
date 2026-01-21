@@ -191,6 +191,7 @@ body.focus header button{
   <span class="hamburger" onclick="openMenu()">☰</span>
   <strong>StudyHelper</strong>
   <div>
+     <button onclick="toggleQuiz()">🧠 Quiz</button>
     <button onclick="location.href='subjects.html'">📚 Subjects</button>
     <button onclick="location.href='calendar.html'">📅 Calendar</button>
     <button id="logout">Logout</button>
@@ -406,6 +407,10 @@ window.exportToPDF = async ()=>{
   });
 
   pdf.save("studyhelper.pdf");
+};
+  window.toggleQuiz = () => {
+  const q = document.getElementById("quizSection");
+  q.style.display = q.style.display === "none" ? "block" : "none";
 };
 </script>
 

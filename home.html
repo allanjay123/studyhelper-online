@@ -408,6 +408,146 @@ window.exportToPDF = async ()=>{
 
   pdf.save("studyhelper.pdf");
 };
+  /* ---------- Quiz (full extractor) ---------- */
+/* Utility: extract text from file (txt, pdf, docx) */
+async function extractTextFromFile(file){
+  const name = file.name || '';
+  const ext = name.split('.').pop().toLowerCase();
+  if(ext === 'txt' || file.type === 'text/plain'){
+    return await file.text();
+  } else if(ext === 'pdf' || file.type === 'application/pdf'){
+    // pdf.js extraction
+    try{
+      const arrayBuffer = await file.arrayBuffer();
+      const loadingTask = pdfjsLib.getDocument({data: arrayBuffer});
+      const pdf = await loadingTask.promise;
+      let full = '';
+      for(let i=1;i<=pdf.numPages;i++){
+        const page = await pdf.getPage(i);
+        const txt = await page.getTextContent();
+        const pageText = txt.items.map(it=>it.str).join(' ');
+        full += pageText + '\n';
+      }
+      return full;
+    }catch(err){
+      console.error('PDF extract error', err);
+      throw new Error('Failed to extract PDF. Make sure pdf.js is available (CDN).');
+    }
+  } else if(ext === 'docx' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'){
+    // mammoth extraction
+    try{
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({arrayBuffer});
+      return result.value;
+    }catch(err){
+      console.error('DOCX extract error', err);
+      throw new Error('Failed to extract DOCX. Make sure mammoth is available (CDN).');
+    }
+  } else if(ext === 'doc' || file.type === 'application/msword'){
+    // legacy .doc — attempt text read (best-effort)
+    try{
+      return await file.text();
+    }catch(e){
+      throw new Error('.doc extraction not fully supported. Convert to .docx or .pdf if possible.');
+    }
+  } else {
+    // try reading as text as fallback
+    try { return await file.text(); } catch(e){ throw new Error('Unsupported file type'); }
+  }
+}
+
+/* Generate quiz: cleaned sentences -> Q/A (last word as answer) */
+async function generateQuiz(){
+  const f=document.getElementById('quizFile').files[0]; if(!f) return alert('Select a file');
+  try{
+    const raw = await extractTextFromFile(f);
+    const cleaned = sanitizeText(raw);
+    const parts = splitIntoSentences(cleaned).filter(s=>s.length>20); // keep longer sentences
+    let count=0;
+    parts.forEach(s=>{
+      const words = s.split(/\s+/).filter(Boolean);
+      if(words.length>2){
+        let ans = words[words.length-1].replace(/[^a-zA-Z0-9]/g,'');
+        if(!ans) ans = words[words.length-2] || 'answer';
+        questions.push({q: s.trim() + ' ?', a: ans});
+        count++;
+      }
+    });
+    store.save('ir_questions',questions);
+    alert('Generated '+count+' questions from file');
+    renderQuiz();
+  }catch(err){
+    alert('Error: '+err.message);
+  }
+}
+
+/* helper: sanitize raw text */
+function sanitizeText(t){
+  // replace weird control chars, normalize spaces
+  return t.replace(/[\u0000-\u001F\u007F-\u009F]/g,' ').replace(/\s+/g,' ').trim();
+}
+function splitIntoSentences(text){
+  // basic sentence splitter on .!? and new lines
+  const arr = text.split(/(?<=[.?!])\s+|\n+/).map(s=>s.trim()).filter(Boolean);
+  return arr;
+}
+
+function renderQuiz(){ const el=document.getElementById('quizList'); el.innerHTML=''; if(!questions.length) el.innerHTML='<li class="muted">No questions</li>';
+  questions.forEach((q,i)=>{ const li=document.createElement('li'); li.innerHTML=`<b>Q:</b> ${escapeHtml(q.q)}<br><small>Ans: ${escapeHtml(q.a)}</small> <button style="float:right" onclick="removeQuestion(${i})">Remove</button>`; el.appendChild(li); });
+}
+function addManualQuestion(){ const q=document.getElementById('qText').value.trim(); const a=document.getElementById('qAns').value.trim(); if(!q||!a) return alert('Add question and answer'); questions.push({q,a}); store.save('ir_questions',questions); document.getElementById('qText').value=''; document.getElementById('qAns').value=''; renderQuiz(); }
+function removeQuestion(i){ if(!confirm('Remove question?')) return; questions.splice(i,1); store.save('ir_questions',questions); renderQuiz(); }
+function clearQuestions(){ if(!confirm('Clear all questions?')) return; questions=[]; store.save('ir_questions',questions); renderQuiz(); }
+
+/* Quiz player state */
+let qpIndex = 0;
+let qpOrder = [];
+let qpAnswers = {};
+
+function shuffleQuestions(){ for(let i=questions.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [questions[i],questions[j]]=[questions[j],questions[i]]; } store.save('ir_questions',questions); renderQuiz(); alert('Questions shuffled'); }
+
+function openQuizPlayer(){
+  if(!questions.length) return alert('No questions');
+  qpOrder = questions.map((_,i)=>i);
+  qpIndex = 0; qpAnswers={};
+  document.getElementById('quizPlayer').style.display='block';
+  document.getElementById('qResult').style.display='none';
+  showCurrentQuestion();
+}
+function closeQuizPlayer(){ document.getElementById('quizPlayer').style.display='none'; }
+function showCurrentQuestion(){
+  const i = qpOrder[qpIndex]; const q = questions[i];
+  document.getElementById('qIndex').innerText = `Question ${qpIndex+1} / ${qpOrder.length}`;
+  document.getElementById('qPrompt').innerText = q.q;
+  document.getElementById('qAnswerInput').value = qpAnswers[qpIndex]||'';
+  document.getElementById('qProgress').innerText = `Answered: ${Object.keys(qpAnswers).length} / ${qpOrder.length}`;
+}
+function prevQ(){ if(qpIndex>0){ saveCurrentAnswer(); qpIndex--; showCurrentQuestion(); } }
+function nextQ(){ if(qpIndex<qpOrder.length-1){ saveCurrentAnswer(); qpIndex++; showCurrentQuestion(); } }
+function saveCurrentAnswer(){ qpAnswers[qpIndex] = document.getElementById('qAnswerInput').value.trim(); }
+function submitQuiz(){
+  saveCurrentAnswer();
+  let score=0;
+  for(let idx=0; idx<qpOrder.length; idx++){
+    const qIdx = qpOrder[idx]; const q=questions[qIdx]; const userAns = (qpAnswers[idx]||'').trim().toLowerCase();
+    if(userAns && userAns === (q.a||'').toLowerCase()) score++;
+  }
+  document.getElementById('qResult').style.display='block';
+  document.getElementById('qScore').innerText = `Score: ${score} / ${qpOrder.length} (${Math.round((score/qpOrder.length)*100)}%)`;
+  document.getElementById('qPlayerTitle').innerText = 'Quiz — Results';
+}
+function retakeQuiz(){ qpAnswers={}; document.getElementById('qResult').style.display='none'; document.getElementById('qPlayerTitle').innerText='Quiz'; openQuizPlayer(); }
+
+/* ---------- Notes ---------- */
+function saveNotes(){ const v=document.getElementById('notesArea').value; notes=v; store.save('ir_notes',notes); renderNotes(); alert('Notes saved'); }
+function renderNotes(){ document.getElementById('notesSaved').innerText = notes || 'No notes yet'; document.getElementById('notesArea').value = notes; }
+function clearNotes(){ if(confirm('Clear notes?')){ notes=''; store.save('ir_notes',notes); renderNotes(); } }
+
+/* ---------- Reminders ---------- */
+function renderReminders(){ const el=document.getElementById('remList'); el.innerHTML=''; if(!reminders.length) el.innerHTML='<li class="muted">No reminders</li>'; reminders.forEach((r,i)=>{ const li=document.createElement('li'); li.innerHTML=`${escapeHtml(r.text)} — ${r.date} ${r.time} <button style="float:right" onclick="removeRem(${i})">Remove</button>`; el.appendChild(li); }); }
+function addReminder(){ const text=document.getElementById('remText').value.trim(); const date=document.getElementById('remDate').value; const time=document.getElementById('remTime').value; if(!text||!date||!time) return alert('Fill all fields'); reminders.push({text,date,time}); store.save('ir_reminders',reminders); document.getElementById('remText').value=''; document.getElementById('remDate').value=''; document.getElementById('remTime').value=''; renderReminders(); if(settings.notif) alert('Reminder saved: '+text+' '+date+' '+time); }
+function removeRem(i){ if(!confirm('Remove reminder?')) return; reminders.splice(i,1); store.save('ir_reminders',reminders); renderReminders(); }
+                       
   
 </script>
 

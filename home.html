@@ -245,6 +245,61 @@ body.focus header button{
   <div id="quizArea"></div>
   </div>
 
+  <!-- QUIZ -->
+  <section id="quiz" class="card" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3>Quiz Generator</h3><div><button class="small" onclick="nav('home')">Close</button></div>
+    </div>
+
+    <div style="margin-top:8px" class="quiz-card">
+      <h4>Manual Question</h4>
+      <input id="qText" placeholder="Question">
+      <input id="qAns" placeholder="Answer" style="margin-top:8px">
+      <div style="margin-top:8px"><button onclick="addManualQuestion()">Add Question</button></div>
+    </div>
+
+    <div style="margin-top:12px" class="quiz-card">
+      <h4>Generate from file (.txt / .pdf / .docx)</h4>
+      <input type="file" id="quizFile" accept=".txt,.pdf,.doc,.docx">
+      <div style="margin-top:8px"><button onclick="generateQuiz()">Generate</button></div>
+      <small>Supports TXT, PDF and DOCX. PDF/DOCX text extraction requires internet for the library CDN (unless you've embedded offline libs).</small>
+    </div>
+
+    <div style="margin-top:12px" class="card quiz-card">
+      <h4>Questions</h4>
+      <ul id="quizList" class="list"></ul>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button onclick="openQuizPlayer()">Start Quiz</button>
+        <button class="small" onclick="shuffleQuestions()">Shuffle Questions</button>
+        <button class="small" onclick="clearQuestions()">Clear All</button>
+      </div>
+    </div>
+  <!-- QUIZ PLAYER -->
+    <div id="quizPlayer" class="card" style="display:none;margin-top:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h4 id="qPlayerTitle">Quiz</h4>
+        <div><button class="small" onclick="closeQuizPlayer()">Close</button></div>
+      </div>
+      <div style="margin-top:8px">
+        <div id="qIndex" style="font-weight:700"></div>
+        <div id="qPrompt" style="margin-top:8px"></div>
+        <input id="qAnswerInput" placeholder="Type your answer here" style="margin-top:8px">
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button onclick="prevQ()">Previous</button>
+          <button onclick="nextQ()">Next</button>
+          <button onclick="submitQuiz()">Submit</button>
+        </div>
+        <div style="margin-top:8px" class="note-sm" id="qProgress"></div>
+      </div>
+      <div id="qResult" style="margin-top:12px;display:none">
+        <h4>Results</h4>
+        <div id="qScore"></div>
+        <div style="margin-top:8px"><button onclick="retakeQuiz()">Retake Quiz</button></div>
+      </div>
+    </div>
+
+</section>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";

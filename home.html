@@ -1,380 +1,461 @@
-<!DOCTYPE html>  <html lang="en">  
-<head>  
-<meta charset="UTF-8">  
-<title>StudyHelper | Home</title>  
-<meta name="viewport" content="width=device-width, initial-scale=1.0">  
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>  <style>  
-/* ================= BASE ================= */  
-*{  
-  box-sizing:border-box;  
-}  
-  
-html, body{  
-  width:100%;  
-  margin:0;  
-  padding:0;  
-  overflow-x:hidden;  
-}  
-  
-body{  
-  font-family:Arial;  
-  background:linear-gradient(135deg,#667eea,#764ba2);  
-  min-height:100vh;  
-}  
-  
-body.dark{  
-  background:#121212;  
-}  
-body.dark .card,  
-body.dark header,  
-body.dark .menu{  
-  background:#1e1e1e;  
-  color:#fff;  
-}  
-  
-/* ================= HEADER ================= */  
-header{  
-  background:#fff;  
-  padding:10px 20px;  
-  display:flex;  
-  justify-content:space-between;  
-  align-items:center;  
-  
-  max-width:1200px;  
-  margin:0 auto;  
-}  
-  
-.hamburger{  
-  font-size:22px;  
-  cursor:pointer;  
-}  
-  
-/* ================= LAYOUT ================= */  
-.container{  
-  width:100%;  
-  max-width:1200px;  
-  margin:20px auto;  
-  padding:10px;  
-}  
-  
-.grid{  
-  display:grid;  
-  grid-template-columns:2fr 1fr;  
-  gap:15px;  
-  width:100%;  
-}  
-  
-/* ================= CARD ================= */  
-.card{  
-  background:#fff;  
-  padding:15px;  
-  border-radius:12px;  
-  margin-bottom:15px;  
-}  
-  
-input, textarea{  
-  width:100%;  
-  padding:8px;  
-  margin-bottom:8px;  
-}  
-  
-button{  
-  padding:8px 12px;  
-  border:none;  
-  border-radius:6px;  
-  background:#4caf50;  
-  color:white;  
-  cursor:pointer;  
-}  
-  
-button.delete{  
-  background:#f44336;  
-  font-size:12px;  
-  margin-left:6px;  
-}  
-  
-/* ================= TASKS & LESSONS ================= */  
-.lesson, .task{  
-  display:flex;  
-  align-items:center;  
-  gap:8px;  
-  margin-bottom:6px;  
-}  
-.lesson.done, .task.done{  
-  text-decoration:line-through;  
-  color:#777;  
-}  
-  
-/* ================= PROGRESS ================= */  
-.progress{  
-  background:#ddd;  
-  height:8px;  
-  border-radius:5px;  
-  overflow:hidden;  
-  margin-top:6px;  
-}  
-.progress div{  
-  background:#4caf50;  
-  height:100%;  
-}  
-  
-/* ================= SUBJECT ================= */  
-.subject-box{  
-  border-bottom:1px solid #eee;  
-  padding-bottom:10px;  
-  margin-bottom:10px;  
-}  
-  
-/* ================= MENU ================= */  
-.menu{  
-  position:fixed;  
-  top:0;  
-  left:-260px;  
-  width:260px;  
-  height:100%;  
-  background:#fff;  
-  padding:15px;  
-  transition:.3s;  
-  z-index:1000;  
-}  
-.menu.open{  
-  left:0;  
-}  
-.menu button{  
-  width:100%;  
-  margin-bottom:10px;  
-}  
-  
-/* ================= FOCUS MODE ================= */  
-body.focus .delete,  
-body.focus header button{  
-  display:none;  
-}  
-  
-/* ================= MOBILE ================= */  
-@media (max-width:768px){  
-  .grid{  
-    grid-template-columns:1fr;  
-  }  
-  header{  
-    flex-wrap:wrap;  
-  }  
-  header div{  
-    width:100%;  
-    display:flex;  
-    justify-content:space-between;  
-  }  
-  .menu{  
-    width:100%;  
-  }  
-}  
-</style>  </head>  <body>  <!-- MENU -->  <div class="menu" id="menu">  
-  <h3>☰ Menu</h3>  
-  <button onclick="toggleDark()">🌙 Dark Mode</button>  
-  <button onclick="exportToPDF()">📕 Export to PDF</button>  
-  <button onclick="toggleFocus()">🎯 Focus Mode</button>  
-  <button onclick="showTutorial()">📘 Tutorial</button>  
-  <button onclick="closeMenu()">❌ Exit</button>  
-</div>  <header>  
-  <span class="hamburger" onclick="openMenu()">☰</span>  
-  <strong>StudyHelper</strong>  
-  <div>  
-    <button onclick="location.href='subjects.html'">📚 Subjects</button>  
-    <button onclick="location.href='calendar.html'">📅 Calendar</button>  
-    <button id="logout">Logout</button>  
-  </div>  
-</header>  <div class="container">  
-<div class="grid">  <!-- LEFT -->  <div>  
-  <div class="card">  
-    <h3>Add Note</h3>  
-    <input id="noteTitle" placeholder="Title">  
-    <textarea id="noteBody" placeholder="Your note"></textarea>  
-    <button id="saveNote">Save Note</button>  
-  </div>    <div class="card">  
-    <h3>Your Notes</h3>  
-    <div id="notesList"></div>  
-  </div>    <div class="card">  
-    <h3>Tasks</h3>  
-    <input id="taskInput" placeholder="New task">  
-    <button id="addTask">Add Task</button>  
-    <div id="tasksList"></div>  
-  </div>  
-</div>  <!-- RIGHT -->  <div>  
-  <div class="card">  
-    <h3>📊 Subjects Mastery</h3>  
-    <div id="subjectsMastery"></div>  
-  </div>    <div class="card">  
-    <h3>📘 Lessons</h3>  
-    <div id="lessonsList"></div>  
-  </div>  
-</div>  </div>  
-</div>  
-  <div id="quizSection" style="display:none; margin-top:20px;">  
-  <h3>🧠 Quiz</h3>  
-  <button onclick="generateQuiz()">Generate Quiz</button>  
-  <div id="quizArea"></div>  
-  </div>  <script type="module">  
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";  
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";  
-import {  
-  getFirestore, collection, addDoc, onSnapshot,  
-  deleteDoc, doc, updateDoc, getDocs  
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";  
-  
-/* FIREBASE */  
-const firebaseConfig={  
-  apiKey:"AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",  
-  authDomain:"studyhelper-app.firebaseapp.com",  
-  projectId:"studyhelper-app"  
-};  
-  
-const app=initializeApp(firebaseConfig);  
-const auth=getAuth(app);  
-const db=getFirestore(app);  
-let uid;  
-  
-/* AUTH */  
-onAuthStateChanged(auth,user=>{  
-  if(!user) location.href="index.html";  
-  uid=user.uid;  
-  loadNotes();  
-  loadTasks();  
-  loadSubjects();  
-});  
-logout.onclick=()=>signOut(auth);  
-  
-/* MENU */  
-window.openMenu=()=>menu.classList.add("open");  
-window.closeMenu=()=>menu.classList.remove("open");  
-window.toggleDark=()=>document.body.classList.toggle("dark");  
-window.toggleFocus=()=>document.body.classList.toggle("focus");  
-  
-/* TUTORIAL */  
-window.showTutorial=()=>{  
-  alert(`📘 STUDYHELPER TUTORIAL  
-  
-• Register then Sign in  
-• Add Notes & Tasks  
-• Create Subjects & Lessons  
-• Check lessons when done  
-• Export notes & tasks to PDF  
-• Use Focus Mode to avoid distractions  
-  
-Happy studying! 📚`);  
-};  
-  
-/* NOTES */  
-saveNote.onclick=async()=>{  
-  if(!noteTitle.value||!noteBody.value) return;  
-  await addDoc(collection(db,"users",uid,"notes"),{  
-    title:noteTitle.value,  
-    body:noteBody.value  
-  });  
-  noteTitle.value="";  
-  noteBody.value="";  
-};  
-  
-function loadNotes(){  
-  onSnapshot(collection(db,"users",uid,"notes"),snap=>{  
-    notesList.innerHTML="";  
-    snap.forEach(d=>{  
-      const div=document.createElement("div");  
-      div.innerHTML=`<strong>${d.data().title}</strong><p>${d.data().body}</p>`;  
-      const del=document.createElement("button");  
-      del.textContent="Delete";  
-      del.className="delete";  
-      del.onclick=()=>deleteDoc(doc(db,"users",uid,"notes",d.id));  
-      div.appendChild(del);  
-      notesList.appendChild(div);  
-    });  
-  });  
-}  
-  
-/* TASKS */  
-addTask.onclick=async()=>{  
-  if(!taskInput.value) return;  
-  await addDoc(collection(db,"users",uid,"tasks"),{text:taskInput.value,done:false});  
-  taskInput.value="";  
-};  
-  
-function loadTasks(){  
-  onSnapshot(collection(db,"users",uid,"tasks"),snap=>{  
-    tasksList.innerHTML="";  
-    snap.forEach(d=>{  
-      const t=d.data();  
-      const row=document.createElement("div");  
-      row.className="task"+(t.done?" done":"");  
-      const cb=document.createElement("input");  
-      cb.type="checkbox";  
-      cb.checked=t.done;  
-      cb.onchange=()=>updateDoc(doc(db,"users",uid,"tasks",d.id),{done:cb.checked});  
-      const del=document.createElement("button");  
-      del.textContent="X";  
-      del.className="delete";  
-      del.onclick=()=>deleteDoc(doc(db,"users",uid,"tasks",d.id));  
-      row.append(cb,t.text,del);  
-      tasksList.appendChild(row);  
-    });  
-  });  
-}  
-  
-/* SUBJECTS */  
-function loadSubjects(){  
-  onSnapshot(collection(db,"users",uid,"subjects"),snap=>{  
-    subjectsMastery.innerHTML="";  
-    lessonsList.innerHTML="";  
-    snap.forEach(s=>{  
-      const sid=s.id;  
-      const sName=s.data().name;  
-      const box=document.createElement("div");  
-      box.className="subject-box";  
-      box.innerHTML=`<strong>${sName}</strong>`;  
-  
-      onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{  
-        let done=0,total=ls.size;  
-        ls.forEach(l=>{  
-          const d=l.data();  
-          if(d.completed) done++;  
-          const row=document.createElement("div");  
-          row.className="lesson"+(d.completed?" done":"");  
-          const cb=document.createElement("input");  
-          cb.type="checkbox";  
-          cb.checked=d.completed;  
-          cb.onchange=()=>updateDoc(  
-            doc(db,"users",uid,"subjects",sid,"lessons",l.id),  
-            {completed:cb.checked}  
-          );  
-          row.append(cb,`${sName}: ${d.title}`);  
-          lessonsList.appendChild(row);  
-        });  
-        const percent=total?Math.round(done/total*100):0;  
-        box.innerHTML+=`<div class="progress"><div style="width:${percent}%"></div></div>`;  
-        subjectsMastery.appendChild(box);  
-      });  
-    });  
-  });  
-}  
-  
-/* EXPORT PDF */  
-window.exportToPDF = async ()=>{  
-  const { jsPDF } = window.jspdf;  
-  const pdf = new jsPDF();  
-  let y = 10;  
-  
-  const notes = await getDocs(collection(db,"users",uid,"notes"));  
-  notes.forEach(d=>{  
-    pdf.text(d.data().title,10,y); y+=6;  
-    pdf.text(d.data().body,12,y); y+=10;  
-  });  
-  
-  pdf.addPage(); y=10;  
-  const tasks = await getDocs(collection(db,"users",uid,"tasks"));  
-  tasks.forEach(d=>{  
-    pdf.text(`• ${d.data().text}`,10,y);  
-    y+=6;  
-  });  
-  
-  pdf.save("studyhelper.pdf");  
-};  
-</script>  </body>  
-</html>  
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>StudyHelper | Home</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+/* ================= BASE ================= */
+*{ box-sizing:border-box; }
+
+html, body{
+  width:100%;
+  margin:0;
+  padding:0;
+  overflow-x:hidden;
+}
+
+body{
+  font-family:Arial;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  min-height:100vh;
+}
+
+body.dark{ background:#121212; }
+body.dark .card,
+body.dark header,
+body.dark .menu{
+  background:#1e1e1e;
+  color:#fff;
+}
+
+/* ================= HEADER ================= */
+header{
+  background:#fff;
+  padding:10px 20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  max-width:1200px;
+  margin:0 auto;
+}
+
+.hamburger{ font-size:22px; cursor:pointer; }
+
+/* ================= LAYOUT ================= */
+.container{
+  width:100%;
+  max-width:1200px;
+  margin:20px auto;
+  padding:10px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:15px;
+}
+
+/* ================= CARD ================= */
+.card{
+  background:#fff;
+  padding:15px;
+  border-radius:12px;
+  margin-bottom:15px;
+}
+
+input, textarea{
+  width:100%;
+  padding:8px;
+  margin-bottom:8px;
+}
+
+button{
+  padding:8px 12px;
+  border:none;
+  border-radius:6px;
+  background:#4caf50;
+  color:white;
+  cursor:pointer;
+}
+
+button.delete{
+  background:#f44336;
+  font-size:12px;
+  margin-left:6px;
+}
+
+/* ================= TASKS & LESSONS ================= */
+.lesson, .task{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:6px;
+}
+.lesson.done, .task.done{
+  text-decoration:line-through;
+  color:#777;
+}
+
+/* ================= PROGRESS ================= */
+.progress{
+  background:#ddd;
+  height:8px;
+  border-radius:5px;
+  overflow:hidden;
+  margin-top:6px;
+}
+.progress div{
+  background:#4caf50;
+  height:100%;
+}
+
+/* ================= SUBJECT ================= */
+.subject-box{
+  border-bottom:1px solid #eee;
+  padding-bottom:10px;
+  margin-bottom:10px;
+}
+
+/* ================= MENU ================= */
+.menu{
+  position:fixed;
+  top:0;
+  left:-260px;
+  width:260px;
+  height:100%;
+  background:#fff;
+  padding:15px;
+  transition:.3s;
+  z-index:1000;
+}
+.menu.open{ left:0; }
+.menu button{
+  width:100%;
+  margin-bottom:10px;
+}
+
+/* ================= FOCUS MODE ================= */
+body.focus .delete,
+body.focus header button{
+  display:none;
+}
+
+/* ================= MOBILE (ORIGINAL) ================= */
+@media (max-width:768px){
+  .grid{ grid-template-columns:1fr; }
+  header{ flex-wrap:wrap; }
+  header div{
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+  }
+  .menu{ width:100%; }
+}
+
+/* ================= MOBILE FIX (ADDED) ================= */
+@media (max-width:768px){
+
+  header{
+    max-width:100%;
+    margin:0;
+    padding:10px;
+  }
+
+  header div{
+    gap:6px;
+  }
+
+  header button{
+    flex:1;
+    font-size:12px;
+    padding:8px 6px;
+  }
+
+  .container{
+    padding:8px;
+  }
+
+  .card{
+    border-radius:10px;
+  }
+
+  textarea{
+    min-height:120px;
+  }
+
+  #quizSection{
+    padding:10px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<!-- MENU -->
+<div class="menu" id="menu">
+  <h3>☰ Menu</h3>
+  <button onclick="toggleDark()">🌙 Dark Mode</button>
+  <button onclick="exportToPDF()">📕 Export to PDF</button>
+  <button onclick="toggleFocus()">🎯 Focus Mode</button>
+  <button onclick="showTutorial()">📘 Tutorial</button>
+  <button onclick="closeMenu()">❌ Exit</button>
+</div>
+
+<header>
+  <span class="hamburger" onclick="openMenu()">☰</span>
+  <strong>StudyHelper</strong>
+  <div>
+    <button onclick="location.href='subjects.html'">📚 Subjects</button>
+    <button onclick="location.href='calendar.html'">📅 Calendar</button>
+    <button id="logout">Logout</button>
+  </div>
+</header>
+
+<div class="container">
+<div class="grid">
+
+<!-- LEFT -->
+<div>
+  <div class="card">
+    <h3>Add Note</h3>
+    <input id="noteTitle" placeholder="Title">
+    <textarea id="noteBody" placeholder="Your note"></textarea>
+    <button id="saveNote">Save Note</button>
+  </div>
+
+  <div class="card">
+    <h3>Your Notes</h3>
+    <div id="notesList"></div>
+  </div>
+
+  <div class="card">
+    <h3>Tasks</h3>
+    <input id="taskInput" placeholder="New task">
+    <button id="addTask">Add Task</button>
+    <div id="tasksList"></div>
+  </div>
+</div>
+
+<!-- RIGHT -->
+<div>
+  <div class="card">
+    <h3>📊 Subjects Mastery</h3>
+    <div id="subjectsMastery"></div>
+  </div>
+
+  <div class="card">
+    <h3>📘 Lessons</h3>
+    <div id="lessonsList"></div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<!-- QUIZ SECTION (EXISTING) -->
+<div id="quizSection" style="display:none; margin-top:20px;">
+  <h3>🧠 Quiz</h3>
+  <p>Quiz feature placeholder (ready for upgrade)</p>
+</div>
+
+<!-- FLOATING QUIZ BUTTON (ADDED) -->
+<button id="quizFab" onclick="toggleQuiz()">🧠 Quiz</button>
+
+<style>
+#quizFab{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:#4caf50;
+  color:#fff;
+  border:none;
+  border-radius:50px;
+  padding:14px 18px;
+  font-size:16px;
+  box-shadow:0 4px 10px rgba(0,0,0,.3);
+  z-index:999;
+}
+@media (min-width:769px){
+  #quizFab{ display:none; }
+}
+</style>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import {
+  getFirestore, collection, addDoc, onSnapshot,
+  deleteDoc, doc, updateDoc, getDocs
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+/* FIREBASE */
+const firebaseConfig={
+  apiKey:"AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
+  authDomain:"studyhelper-app.firebaseapp.com",
+  projectId:"studyhelper-app"
+};
+
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+let uid;
+
+/* AUTH */
+onAuthStateChanged(auth,user=>{
+  if(!user) location.href="index.html";
+  uid=user.uid;
+  loadNotes();
+  loadTasks();
+  loadSubjects();
+});
+logout.onclick=()=>signOut(auth);
+
+/* MENU */
+window.openMenu=()=>menu.classList.add("open");
+window.closeMenu=()=>menu.classList.remove("open");
+window.toggleDark=()=>document.body.classList.toggle("dark");
+window.toggleFocus=()=>document.body.classList.toggle("focus");
+
+/* QUIZ TOGGLE (ADDED) */
+window.toggleQuiz=()=>{
+  const q=document.getElementById("quizSection");
+  q.style.display=q.style.display==="none"?"block":"none";
+  q.scrollIntoView({behavior:"smooth"});
+};
+
+/* TUTORIAL */
+window.showTutorial=()=>{
+  alert(`📘 STUDYHELPER TUTORIAL
+
+• Register then Sign in
+• Add Notes & Tasks
+• Create Subjects & Lessons
+• Check lessons when done
+• Export notes & tasks to PDF
+• Use Focus Mode to avoid distractions
+
+Happy studying! 📚`);
+};
+
+/* NOTES */
+saveNote.onclick=async()=>{
+  if(!noteTitle.value||!noteBody.value) return;
+  await addDoc(collection(db,"users",uid,"notes"),{
+    title:noteTitle.value,
+    body:noteBody.value
+  });
+  noteTitle.value="";
+  noteBody.value="";
+};
+
+function loadNotes(){
+  onSnapshot(collection(db,"users",uid,"notes"),snap=>{
+    notesList.innerHTML="";
+    snap.forEach(d=>{
+      const div=document.createElement("div");
+      div.innerHTML=`<strong>${d.data().title}</strong><p>${d.data().body}</p>`;
+      const del=document.createElement("button");
+      del.textContent="Delete";
+      del.className="delete";
+      del.onclick=()=>deleteDoc(doc(db,"users",uid,"notes",d.id));
+      div.appendChild(del);
+      notesList.appendChild(div);
+    });
+  });
+}
+
+/* TASKS */
+addTask.onclick=async()=>{
+  if(!taskInput.value) return;
+  await addDoc(collection(db,"users",uid,"tasks"),{text:taskInput.value,done:false});
+  taskInput.value="";
+};
+
+function loadTasks(){
+  onSnapshot(collection(db,"users",uid,"tasks"),snap=>{
+    tasksList.innerHTML="";
+    snap.forEach(d=>{
+      const t=d.data();
+      const row=document.createElement("div");
+      row.className="task"+(t.done?" done":"");
+      const cb=document.createElement("input");
+      cb.type="checkbox";
+      cb.checked=t.done;
+      cb.onchange=()=>updateDoc(doc(db,"users",uid,"tasks",d.id),{done:cb.checked});
+      const del=document.createElement("button");
+      del.textContent="X";
+      del.className="delete";
+      del.onclick=()=>deleteDoc(doc(db,"users",uid,"tasks",d.id));
+      row.append(cb,t.text,del);
+      tasksList.appendChild(row);
+    });
+  });
+}
+
+/* SUBJECTS */
+function loadSubjects(){
+  onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
+    subjectsMastery.innerHTML="";
+    lessonsList.innerHTML="";
+    snap.forEach(s=>{
+      const sid=s.id;
+      const sName=s.data().name;
+      const box=document.createElement("div");
+      box.className="subject-box";
+      box.innerHTML=`<strong>${sName}</strong>`;
+
+      onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
+        let done=0,total=ls.size;
+        ls.forEach(l=>{
+          const d=l.data();
+          if(d.completed) done++;
+          const row=document.createElement("div");
+          row.className="lesson"+(d.completed?" done":"");
+          const cb=document.createElement("input");
+          cb.type="checkbox";
+          cb.checked=d.completed;
+          cb.onchange=()=>updateDoc(
+            doc(db,"users",uid,"subjects",sid,"lessons",l.id),
+            {completed:cb.checked}
+          );
+          row.append(cb,`${sName}: ${d.title}`);
+          lessonsList.appendChild(row);
+        });
+        const percent=total?Math.round(done/total*100):0;
+        box.innerHTML+=`<div class="progress"><div style="width:${percent}%"></div></div>`;
+        subjectsMastery.appendChild(box);
+      });
+    });
+  });
+}
+
+/* EXPORT PDF */
+window.exportToPDF=async()=>{
+  const { jsPDF }=window.jspdf;
+  const pdf=new jsPDF();
+  let y=10;
+
+  const notes=await getDocs(collection(db,"users",uid,"notes"));
+  notes.forEach(d=>{
+    pdf.text(d.data().title,10,y); y+=6;
+    pdf.text(d.data().body,12,y); y+=10;
+  });
+
+  pdf.addPage(); y=10;
+  const tasks=await getDocs(collection(db,"users",uid,"tasks"));
+  tasks.forEach(d=>{
+    pdf.text(`• ${d.data().text}`,10,y);
+    y+=6;
+  });
+
+  pdf.save("studyhelper.pdf");
+};
+</script>
+
+</body>
+</html>

@@ -2,85 +2,38 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>StudyHelper | Home</title>
+<title>StudyHelper</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-/* ================= BASE ================= */
-*{
-  box-sizing:border-box;
-}
-
-html, body{
-  width:100%;
-  margin:0;
-  padding:0;
-  overflow-x:hidden;
-}
-
 body{
+  margin:0;
   font-family:Arial;
   background:linear-gradient(135deg,#667eea,#764ba2);
-  min-height:100vh;
 }
-
-body.dark{
-  background:#121212;
-}
-body.dark .card,
-body.dark header,
-body.dark .menu{
-  background:#1e1e1e;
-  color:#fff;
-}
-
-/* ================= HEADER ================= */
 header{
   background:#fff;
-  padding:10px 20px;
+  padding:10px 15px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-
-  max-width:1200px;
-  margin:0 auto;
 }
-
-.hamburger{
-  font-size:22px;
-  cursor:pointer;
-}
-
-/* ================= LAYOUT ================= */
 .container{
-  width:100%;
-  max-width:1200px;
+  max-width:1000px;
   margin:20px auto;
   padding:10px;
 }
-
-.grid{
-  display:grid;
-  grid-template-columns:2fr 1fr;
-  gap:15px;
-  width:100%;
-}
-
-/* ================= CARD ================= */
 .card{
   background:#fff;
   padding:15px;
-  border-radius:12px;
+  border-radius:10px;
   margin-bottom:15px;
 }
-
-input, textarea{
+input,textarea{
   width:100%;
   padding:8px;
   margin-bottom:8px;
 }
-
 button{
   padding:8px 12px;
   border:none;
@@ -89,270 +42,78 @@ button{
   color:white;
   cursor:pointer;
 }
-
-button.delete{
-  background:#f44336;
-  font-size:12px;
-  margin-left:6px;
-}
-
-/* ================= TASKS & LESSONS ================= */
-.lesson, .task{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  margin-bottom:6px;
-}
-.lesson.done, .task.done{
-  text-decoration:line-through;
-  color:#777;
-}
-
-/* ================= PROGRESS ================= */
-.progress{
-  background:#ddd;
-  height:8px;
-  border-radius:5px;
-  overflow:hidden;
-  margin-top:6px;
-}
-.progress div{
-  background:#4caf50;
-  height:100%;
-}
-
-/* ================= SUBJECT ================= */
-.subject-box{
-  border-bottom:1px solid #eee;
-  padding-bottom:10px;
-  margin-bottom:10px;
-}
-
-/* ================= MENU ================= */
-.menu{
-  position:fixed;
-  top:0;
-  left:-260px;
-  width:260px;
-  height:100%;
-  background:#fff;
-  padding:15px;
-  transition:.3s;
-  z-index:1000;
-}
-.menu.open{
-  left:0;
-}
-.menu button{
-  width:100%;
-  margin-bottom:10px;
-}
-
-/* ================= FOCUS MODE ================= */
-body.focus .delete,
-body.focus header button{
-  display:none;
-}
-
-/* ================= MOBILE ================= */
-@media (max-width:768px){
-  .grid{
-    grid-template-columns:1fr;
-  }
-  header{
-    flex-wrap:wrap;
-  }
-  header div{
-    width:100%;
-    display:flex;
-    justify-content:space-between;
-  }
-  .menu{
-    width:100%;
-  }
-}
+button.red{background:#f44336}
+.quiz-question{margin-bottom:15px}
+.choice{display:block;margin-left:15px}
 </style>
 </head>
 
 <body>
 
-<!-- MENU -->
-<div class="menu" id="menu">
-  <h3>☰ Menu</h3>
-  <button onclick="toggleDark()">🌙 Dark Mode</button>
-  <button onclick="exportToPDF()">📕 Export to PDF</button>
-  <button onclick="toggleFocus()">🎯 Focus Mode</button>
-  <button onclick="showTutorial()">📘 Tutorial</button>
-  <button onclick="closeMenu()">❌ Exit</button>
-</div>
- 
-
 <header>
-  <span class="hamburger" onclick="openMenu()">☰</span>
-  <strong>StudyHelper</strong>
-  <div>
-     <button onclick="toggleQuiz()">🧠 Quiz</button>
-    <button onclick="location.href='subjects.html'">📚 Subjects</button>
-    <button onclick="location.href='calendar.html'">📅 Calendar</button>
-    <button id="logout">Logout</button>
-  </div>
+  <b>StudyHelper</b>
+  <button onclick="toggleQuiz()">🧠 Quiz</button>
 </header>
 
 <div class="container">
-<div class="grid">
 
-  
-<!-- LEFT -->
-<div>
-  <div class="card">
-    <h3>Add Note</h3>
-    <input id="noteTitle" placeholder="Title">
-    <textarea id="noteBody" placeholder="Your note"></textarea>
-    <button id="saveNote">Save Note</button>
-  </div>
-
-  <div class="card">
-    <h3>Your Notes</h3>
-    <div id="notesList"></div>
-  </div>
-
-  <div class="card">
-    <h3>Tasks</h3>
-    <input id="taskInput" placeholder="New task">
-    <button id="addTask">Add Task</button>
-    <div id="tasksList"></div>
-  </div>
+<!-- NOTES -->
+<div class="card">
+  <h3>Add Note</h3>
+  <input id="noteTitle" placeholder="Title">
+  <textarea id="noteBody" placeholder="Your note (sentences)"></textarea>
+  <button onclick="saveNote()">Save Note</button>
 </div>
 
-<!-- RIGHT -->
-<div>
-  <div class="card">
-    <h3>📊 Subjects Mastery</h3>
-    <div id="subjectsMastery"></div>
-  </div>
-
-  <div class="card">
-    <h3>📘 Lessons</h3>
-    <div id="lessonsList"></div>
-  </div>
+<div class="card">
+  <h3>Your Notes</h3>
+  <div id="notesList"></div>
 </div>
 
-</div>
-</div>
-  <div id="quizSection" style="display:none; margin-top:20px;">
-  <h3>🧠 Quiz</h3>
-  <button onclick="generateQuiz()">Generate Quiz</button>
+<!-- QUIZ -->
+<div class="card" id="quizBox" style="display:none">
+  <h3>Generated Quiz</h3>
+  <button onclick="generateQuiz()">Generate from Notes</button>
   <div id="quizArea"></div>
-  </div>
+  <button onclick="submitQuiz()">Submit Quiz</button>
+  <h3 id="score"></h3>
+</div>
 
-  <!-- QUIZ -->
-  <section id="quiz" class="card" style="display:none">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <h3>Quiz Generator</h3><div><button class="small" onclick="nav('home')">Close</button></div>
-    </div>
-
-    <div style="margin-top:8px" class="quiz-card">
-      <h4>Manual Question</h4>
-      <input id="qText" placeholder="Question">
-      <input id="qAns" placeholder="Answer" style="margin-top:8px">
-      <div style="margin-top:8px"><button onclick="addManualQuestion()">Add Question</button></div>
-    </div>
-
-    <div style="margin-top:12px" class="quiz-card">
-      <h4>Generate from file (.txt / .pdf / .docx)</h4>
-      <input type="file" id="quizFile" accept=".txt,.pdf,.doc,.docx">
-      <div style="margin-top:8px"><button onclick="generateQuiz()">Generate</button></div>
-      <small>Supports TXT, PDF and DOCX. PDF/DOCX text extraction requires internet for the library CDN (unless you've embedded offline libs).</small>
-    </div>
-
-    <div style="margin-top:12px" class="card quiz-card">
-      <h4>Questions</h4>
-      <ul id="quizList" class="list"></ul>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <button onclick="openQuizPlayer()">Start Quiz</button>
-        <button class="small" onclick="shuffleQuestions()">Shuffle Questions</button>
-        <button class="small" onclick="clearQuestions()">Clear All</button>
-      </div>
-    </div>
-  <!-- QUIZ PLAYER -->
-    <div id="quizPlayer" class="card" style="display:none;margin-top:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <h4 id="qPlayerTitle">Quiz</h4>
-        <div><button class="small" onclick="closeQuizPlayer()">Close</button></div>
-      </div>
-      <div style="margin-top:8px">
-        <div id="qIndex" style="font-weight:700"></div>
-        <div id="qPrompt" style="margin-top:8px"></div>
-        <input id="qAnswerInput" placeholder="Type your answer here" style="margin-top:8px">
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button onclick="prevQ()">Previous</button>
-          <button onclick="nextQ()">Next</button>
-          <button onclick="submitQuiz()">Submit</button>
-        </div>
-        <div style="margin-top:8px" class="note-sm" id="qProgress"></div>
-      </div>
-      <div id="qResult" style="margin-top:12px;display:none">
-        <h4>Results</h4>
-        <div id="qScore"></div>
-        <div style="margin-top:8px"><button onclick="retakeQuiz()">Retake Quiz</button></div>
-      </div>
-    </div>
-
-</section>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import {
-  getFirestore, collection, addDoc, onSnapshot,
-  deleteDoc, doc, updateDoc, getDocs
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
-/* FIREBASE */
-const firebaseConfig={
-  apiKey:"AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
-  authDomain:"studyhelper-app.firebaseapp.com",
-  projectId:"studyhelper-app"
+const firebaseConfig = {
+  apiKey: "AIzaSyCk3YyAne_nz0fwChI6557R8RtcmlMAawA",
+  authDomain: "studyhelper-app.firebaseapp.com",
+  projectId: "studyhelper-app"
 };
 
-const app=initializeApp(firebaseConfig);
-const auth=getAuth(app);
-const db=getFirestore(app);
-let uid;
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-/* AUTH */
+let uid;
+let notesData = [];
+let quizData = [];
+
 onAuthStateChanged(auth,user=>{
-  if(!user) location.href="index.html";
+  if(!user) return;
   uid=user.uid;
   loadNotes();
-  loadTasks();
-  loadSubjects();
 });
-logout.onclick=()=>signOut(auth);
 
-/* MENU */
-window.openMenu=()=>menu.classList.add("open");
-window.closeMenu=()=>menu.classList.remove("open");
-window.toggleDark=()=>document.body.classList.toggle("dark");
-window.toggleFocus=()=>document.body.classList.toggle("focus");
-
-/* TUTORIAL */
-window.showTutorial=()=>{
-  alert(`📘 STUDYHELPER TUTORIAL
-
-• Register then Sign in
-• Add Notes & Tasks
-• Create Subjects & Lessons
-• Check lessons when done
-• Export notes & tasks to PDF
-• Use Focus Mode to avoid distractions
-
-Happy studying! 📚`);
+window.toggleQuiz=()=>{
+  quizBox.style.display =
+    quizBox.style.display==="none"?"block":"none";
 };
 
 /* NOTES */
-saveNote.onclick=async()=>{
-  if(!noteTitle.value||!noteBody.value) return;
+window.saveNote = async()=>{
+  if(!noteTitle.value || !noteBody.value) return;
   await addDoc(collection(db,"users",uid,"notes"),{
     title:noteTitle.value,
     body:noteBody.value
@@ -364,246 +125,53 @@ saveNote.onclick=async()=>{
 function loadNotes(){
   onSnapshot(collection(db,"users",uid,"notes"),snap=>{
     notesList.innerHTML="";
+    notesData=[];
     snap.forEach(d=>{
-      const div=document.createElement("div");
-      div.innerHTML=`<strong>${d.data().title}</strong><p>${d.data().body}</p>`;
-      const del=document.createElement("button");
-      del.textContent="Delete";
-      del.className="delete";
-      del.onclick=()=>deleteDoc(doc(db,"users",uid,"notes",d.id));
-      div.appendChild(del);
-      notesList.appendChild(div);
+      notesData.push(d.data().body);
+      notesList.innerHTML+=`
+        <p><b>${d.data().title}</b><br>${d.data().body}</p>`;
     });
   });
 }
 
-/* TASKS */
-addTask.onclick=async()=>{
-  if(!taskInput.value) return;
-  await addDoc(collection(db,"users",uid,"tasks"),{text:taskInput.value,done:false});
-  taskInput.value="";
+/* QUIZ */
+window.generateQuiz=()=>{
+  quizArea.innerHTML="";
+  quizData=[];
+  score.innerText="";
+
+  let text = notesData.join(" ");
+  let sentences = text.split(".").filter(s=>s.trim().length>15);
+
+  sentences.forEach((s,i)=>{
+    let words = s.trim().split(" ");
+    let answer = words.pop();
+
+    let choices=[answer,"Option A","Option B","Option C"]
+      .sort(()=>Math.random()-0.5);
+
+    quizData.push({answer});
+
+    quizArea.innerHTML+=`
+      <div class="quiz-question">
+        <b>${i+1}. ${words.join(" ")} _____</b>
+        ${choices.map(c=>`
+          <label class="choice">
+            <input type="radio" name="q${i}" value="${c}"> ${c}
+          </label>`).join("")}
+      </div>
+    `;
+  });
 };
 
-function loadTasks(){
-  onSnapshot(collection(db,"users",uid,"tasks"),snap=>{
-    tasksList.innerHTML="";
-    snap.forEach(d=>{
-      const t=d.data();
-      const row=document.createElement("div");
-      row.className="task"+(t.done?" done":"");
-      const cb=document.createElement("input");
-      cb.type="checkbox";
-      cb.checked=t.done;
-      cb.onchange=()=>updateDoc(doc(db,"users",uid,"tasks",d.id),{done:cb.checked});
-      const del=document.createElement("button");
-      del.textContent="X";
-      del.className="delete";
-      del.onclick=()=>deleteDoc(doc(db,"users",uid,"tasks",d.id));
-      row.append(cb,t.text,del);
-      tasksList.appendChild(row);
-    });
+window.submitQuiz=()=>{
+  let scoreCount=0;
+  quizData.forEach((q,i)=>{
+    let sel=document.querySelector(`input[name="q${i}"]:checked`);
+    if(sel && sel.value===q.answer) scoreCount++;
   });
-}
-
-/* SUBJECTS */
-function loadSubjects(){
-  onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
-    subjectsMastery.innerHTML="";
-    lessonsList.innerHTML="";
-    snap.forEach(s=>{
-      const sid=s.id;
-      const sName=s.data().name;
-      const box=document.createElement("div");
-      box.className="subject-box";
-      box.innerHTML=`<strong>${sName}</strong>`;
-
-      onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
-        let done=0,total=ls.size;
-        ls.forEach(l=>{
-          const d=l.data();
-          if(d.completed) done++;
-          const row=document.createElement("div");
-          row.className="lesson"+(d.completed?" done":"");
-          const cb=document.createElement("input");
-          cb.type="checkbox";
-          cb.checked=d.completed;
-          cb.onchange=()=>updateDoc(
-            doc(db,"users",uid,"subjects",sid,"lessons",l.id),
-            {completed:cb.checked}
-          );
-          row.append(cb,`${sName}: ${d.title}`);
-          lessonsList.appendChild(row);
-        });
-        const percent=total?Math.round(done/total*100):0;
-        box.innerHTML+=`<div class="progress"><div style="width:${percent}%"></div></div>`;
-        subjectsMastery.appendChild(box);
-      });
-    });
-  });
-}
-
-/* EXPORT PDF */
-window.exportToPDF = async ()=>{
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF();
-  let y = 10;
-
-  const notes = await getDocs(collection(db,"users",uid,"notes"));
-  notes.forEach(d=>{
-    pdf.text(d.data().title,10,y); y+=6;
-    pdf.text(d.data().body,12,y); y+=10;
-  });
-
-  pdf.addPage(); y=10;
-  const tasks = await getDocs(collection(db,"users",uid,"tasks"));
-  tasks.forEach(d=>{
-    pdf.text(`• ${d.data().text}`,10,y);
-    y+=6;
-  });
-
-  pdf.save("studyhelper.pdf");
+  score.innerText=`Score: ${scoreCount} / ${quizData.length}`;
 };
-  /* ---------- Quiz (full extractor) ---------- */
-/* Utility: extract text from file (txt, pdf, docx) */
-async function extractTextFromFile(file){
-  const name = file.name || '';
-  const ext = name.split('.').pop().toLowerCase();
-  if(ext === 'txt' || file.type === 'text/plain'){
-    return await file.text();
-  } else if(ext === 'pdf' || file.type === 'application/pdf'){
-    // pdf.js extraction
-    try{
-      const arrayBuffer = await file.arrayBuffer();
-      const loadingTask = pdfjsLib.getDocument({data: arrayBuffer});
-      const pdf = await loadingTask.promise;
-      let full = '';
-      for(let i=1;i<=pdf.numPages;i++){
-        const page = await pdf.getPage(i);
-        const txt = await page.getTextContent();
-        const pageText = txt.items.map(it=>it.str).join(' ');
-        full += pageText + '\n';
-      }
-      return full;
-    }catch(err){
-      console.error('PDF extract error', err);
-      throw new Error('Failed to extract PDF. Make sure pdf.js is available (CDN).');
-    }
-  } else if(ext === 'docx' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'){
-    // mammoth extraction
-    try{
-      const arrayBuffer = await file.arrayBuffer();
-      const result = await mammoth.extractRawText({arrayBuffer});
-      return result.value;
-    }catch(err){
-      console.error('DOCX extract error', err);
-      throw new Error('Failed to extract DOCX. Make sure mammoth is available (CDN).');
-    }
-  } else if(ext === 'doc' || file.type === 'application/msword'){
-    // legacy .doc — attempt text read (best-effort)
-    try{
-      return await file.text();
-    }catch(e){
-      throw new Error('.doc extraction not fully supported. Convert to .docx or .pdf if possible.');
-    }
-  } else {
-    // try reading as text as fallback
-    try { return await file.text(); } catch(e){ throw new Error('Unsupported file type'); }
-  }
-}
-
-/* Generate quiz: cleaned sentences -> Q/A (last word as answer) */
-async function generateQuiz(){
-  const f=document.getElementById('quizFile').files[0]; if(!f) return alert('Select a file');
-  try{
-    const raw = await extractTextFromFile(f);
-    const cleaned = sanitizeText(raw);
-    const parts = splitIntoSentences(cleaned).filter(s=>s.length>20); // keep longer sentences
-    let count=0;
-    parts.forEach(s=>{
-      const words = s.split(/\s+/).filter(Boolean);
-      if(words.length>2){
-        let ans = words[words.length-1].replace(/[^a-zA-Z0-9]/g,'');
-        if(!ans) ans = words[words.length-2] || 'answer';
-        questions.push({q: s.trim() + ' ?', a: ans});
-        count++;
-      }
-    });
-    store.save('ir_questions',questions);
-    alert('Generated '+count+' questions from file');
-    renderQuiz();
-  }catch(err){
-    alert('Error: '+err.message);
-  }
-}
-
-/* helper: sanitize raw text */
-function sanitizeText(t){
-  // replace weird control chars, normalize spaces
-  return t.replace(/[\u0000-\u001F\u007F-\u009F]/g,' ').replace(/\s+/g,' ').trim();
-}
-function splitIntoSentences(text){
-  // basic sentence splitter on .!? and new lines
-  const arr = text.split(/(?<=[.?!])\s+|\n+/).map(s=>s.trim()).filter(Boolean);
-  return arr;
-}
-
-function renderQuiz(){ const el=document.getElementById('quizList'); el.innerHTML=''; if(!questions.length) el.innerHTML='<li class="muted">No questions</li>';
-  questions.forEach((q,i)=>{ const li=document.createElement('li'); li.innerHTML=`<b>Q:</b> ${escapeHtml(q.q)}<br><small>Ans: ${escapeHtml(q.a)}</small> <button style="float:right" onclick="removeQuestion(${i})">Remove</button>`; el.appendChild(li); });
-}
-function addManualQuestion(){ const q=document.getElementById('qText').value.trim(); const a=document.getElementById('qAns').value.trim(); if(!q||!a) return alert('Add question and answer'); questions.push({q,a}); store.save('ir_questions',questions); document.getElementById('qText').value=''; document.getElementById('qAns').value=''; renderQuiz(); }
-function removeQuestion(i){ if(!confirm('Remove question?')) return; questions.splice(i,1); store.save('ir_questions',questions); renderQuiz(); }
-function clearQuestions(){ if(!confirm('Clear all questions?')) return; questions=[]; store.save('ir_questions',questions); renderQuiz(); }
-
-/* Quiz player state */
-let qpIndex = 0;
-let qpOrder = [];
-let qpAnswers = {};
-
-function shuffleQuestions(){ for(let i=questions.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [questions[i],questions[j]]=[questions[j],questions[i]]; } store.save('ir_questions',questions); renderQuiz(); alert('Questions shuffled'); }
-
-function openQuizPlayer(){
-  if(!questions.length) return alert('No questions');
-  qpOrder = questions.map((_,i)=>i);
-  qpIndex = 0; qpAnswers={};
-  document.getElementById('quizPlayer').style.display='block';
-  document.getElementById('qResult').style.display='none';
-  showCurrentQuestion();
-}
-function closeQuizPlayer(){ document.getElementById('quizPlayer').style.display='none'; }
-function showCurrentQuestion(){
-  const i = qpOrder[qpIndex]; const q = questions[i];
-  document.getElementById('qIndex').innerText = `Question ${qpIndex+1} / ${qpOrder.length}`;
-  document.getElementById('qPrompt').innerText = q.q;
-  document.getElementById('qAnswerInput').value = qpAnswers[qpIndex]||'';
-  document.getElementById('qProgress').innerText = `Answered: ${Object.keys(qpAnswers).length} / ${qpOrder.length}`;
-}
-function prevQ(){ if(qpIndex>0){ saveCurrentAnswer(); qpIndex--; showCurrentQuestion(); } }
-function nextQ(){ if(qpIndex<qpOrder.length-1){ saveCurrentAnswer(); qpIndex++; showCurrentQuestion(); } }
-function saveCurrentAnswer(){ qpAnswers[qpIndex] = document.getElementById('qAnswerInput').value.trim(); }
-function submitQuiz(){
-  saveCurrentAnswer();
-  let score=0;
-  for(let idx=0; idx<qpOrder.length; idx++){
-    const qIdx = qpOrder[idx]; const q=questions[qIdx]; const userAns = (qpAnswers[idx]||'').trim().toLowerCase();
-    if(userAns && userAns === (q.a||'').toLowerCase()) score++;
-  }
-  document.getElementById('qResult').style.display='block';
-  document.getElementById('qScore').innerText = `Score: ${score} / ${qpOrder.length} (${Math.round((score/qpOrder.length)*100)}%)`;
-  document.getElementById('qPlayerTitle').innerText = 'Quiz — Results';
-}
-function retakeQuiz(){ qpAnswers={}; document.getElementById('qResult').style.display='none'; document.getElementById('qPlayerTitle').innerText='Quiz'; openQuizPlayer(); }
-
-/* ---------- Notes ---------- */
-function saveNotes(){ const v=document.getElementById('notesArea').value; notes=v; store.save('ir_notes',notes); renderNotes(); alert('Notes saved'); }
-function renderNotes(){ document.getElementById('notesSaved').innerText = notes || 'No notes yet'; document.getElementById('notesArea').value = notes; }
-function clearNotes(){ if(confirm('Clear notes?')){ notes=''; store.save('ir_notes',notes); renderNotes(); } }
-
-/* ---------- Reminders ---------- */
-function renderReminders(){ const el=document.getElementById('remList'); el.innerHTML=''; if(!reminders.length) el.innerHTML='<li class="muted">No reminders</li>'; reminders.forEach((r,i)=>{ const li=document.createElement('li'); li.innerHTML=`${escapeHtml(r.text)} — ${r.date} ${r.time} <button style="float:right" onclick="removeRem(${i})">Remove</button>`; el.appendChild(li); }); }
-function addReminder(){ const text=document.getElementById('remText').value.trim(); const date=document.getElementById('remDate').value; const time=document.getElementById('remTime').value; if(!text||!date||!time) return alert('Fill all fields'); reminders.push({text,date,time}); store.save('ir_reminders',reminders); document.getElementById('remText').value=''; document.getElementById('remDate').value=''; document.getElementById('remTime').value=''; renderReminders(); if(settings.notif) alert('Reminder saved: '+text+' '+date+' '+time); }
-function removeRem(i){ if(!confirm('Remove reminder?')) return; reminders.splice(i,1); store.save('ir_reminders',reminders); renderReminders(); }
-                       
-  
 </script>
 
 </body>

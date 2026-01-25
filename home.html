@@ -7,15 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-/* ================= BASE ================= */
 *{box-sizing:border-box}
-html,body{
-  width:100%;
-  margin:0;
-  padding:0;
-  overflow-x:hidden;
-}
-
+html,body{width:100%;margin:0;padding:0;overflow-x:hidden}
 body{
   font-family:Arial;
   background:linear-gradient(135deg,#667eea,#764ba2);
@@ -23,11 +16,9 @@ body{
 }
 
 body.dark{background:#121212}
-body.dark .card,
-body.dark header,
-body.dark .menu{background:#1e1e1e;color:#fff}
+body.dark .card,body.dark header,body.dark .menu{background:#1e1e1e;color:#fff}
 
-/* ================= HEADER ================= */
+/* HEADER */
 header{
   background:#fff;
   padding:10px 15px;
@@ -39,14 +30,9 @@ header{
   top:0;
   z-index:999;
 }
+.header-actions{display:flex;gap:8px}
 
-/* HEADER BUTTON GROUP */
-.header-actions{
-  display:flex;
-  gap:8px;
-}
-
-/* ================= MENU ================= */
+/* MENU */
 .menu{
   position:fixed;
   top:0;
@@ -59,26 +45,13 @@ header{
   z-index:1000;
 }
 .menu.open{left:0}
-.menu button{
-  width:100%;
-  margin-bottom:10px;
-}
+.menu button{width:100%;margin-bottom:10px}
 
-/* ================= LAYOUT ================= */
-.container{
-  width:100%;
-  max-width:1200px;
-  margin:15px auto;
-  padding:10px;
-}
+/* LAYOUT */
+.container{max-width:1200px;margin:15px auto;padding:10px}
+.grid{display:grid;grid-template-columns:2fr 1fr;gap:15px}
 
-.grid{
-  display:grid;
-  grid-template-columns:2fr 1fr;
-  gap:15px;
-}
-
-/* ================= CARD ================= */
+/* CARD */
 .card{
   background:#fff;
   padding:15px;
@@ -86,14 +59,10 @@ header{
   margin-bottom:15px;
 }
 
-/* ================= INPUT ================= */
-input,textarea{
-  width:100%;
-  padding:8px;
-  margin-bottom:8px;
-}
+/* INPUT */
+input,textarea{width:100%;padding:8px;margin-bottom:8px}
 
-/* ================= BUTTON ================= */
+/* BUTTON */
 button{
   padding:8px 12px;
   border:none;
@@ -102,63 +71,24 @@ button{
   color:white;
   cursor:pointer;
 }
+button.delete{background:#f44336;font-size:12px}
 
-button.delete{
-  background:#f44336;
-  font-size:12px;
-}
+/* TASK & LESSON */
+.task,.lesson{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.task.done,.lesson.done{text-decoration:line-through;color:#777}
 
-/* ================= TASK & LESSON ================= */
-.task,.lesson{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  margin-bottom:6px;
-}
-.task.done,.lesson.done{
-  text-decoration:line-through;
-  color:#777;
-}
+/* PROGRESS */
+.progress{background:#ddd;height:8px;border-radius:5px;overflow:hidden}
+.progress div{background:#4caf50;height:100%}
 
-/* ================= PROGRESS ================= */
-.progress{
-  background:#ddd;
-  height:8px;
-  border-radius:5px;
-  overflow:hidden;
-}
-.progress div{
-  background:#4caf50;
-  height:100%;
-}
+/* SUBJECT */
+.subject-box{border-bottom:1px solid #eee;padding-bottom:10px;margin-bottom:10px}
 
-/* ================= SUBJECT ================= */
-.subject-box{
-  border-bottom:1px solid #eee;
-  padding-bottom:10px;
-  margin-bottom:10px;
-}
-
-/* ================= MOBILE FIX ================= */
+/* MOBILE */
 @media(max-width:768px){
-
-  header{
-    flex-wrap:wrap;
-  }
-
-  .header-actions{
-    width:100%;
-    justify-content:space-between;
-    margin-top:8px;
-  }
-
-  .grid{
-    grid-template-columns:1fr;
-  }
-
-  body{
-    padding-bottom:40px;
-  }
+  header{flex-wrap:wrap}
+  .header-actions{width:100%;justify-content:space-between;margin-top:8px}
+  .grid{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -176,7 +106,7 @@ button.delete{
 </div>
 
 <header>
-  <span class="hamburger" onclick="openMenu()">☰</span>
+  <span onclick="openMenu()">☰</span>
   <strong>StudyHelper</strong>
   <div class="header-actions">
     <button onclick="location.href='subjects.html'">📚 Subjects</button>
@@ -226,7 +156,6 @@ button.delete{
 </div>
 </div>
 
-<!-- SCRIPT (WALANG BINAGO) -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getAuth,onAuthStateChanged,signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
@@ -256,7 +185,6 @@ logout.onclick=()=>signOut(auth);
 window.openMenu=()=>menu.classList.add("open");
 window.closeMenu=()=>menu.classList.remove("open");
 window.toggleDark=()=>document.body.classList.toggle("dark");
-window.toggleFocus=()=>document.body.classList.toggle("focus");
 
 /* NOTES */
 saveNote.onclick=async()=>{
@@ -313,34 +241,46 @@ function loadTasks(){
  });
 }
 
-/* SUBJECTS */
+/* ✅ FIXED SUBJECTS */
 function loadSubjects(){
  onSnapshot(collection(db,"users",uid,"subjects"),snap=>{
   subjectsMastery.innerHTML="";
   lessonsList.innerHTML="";
+
   snap.forEach(s=>{
    const sid=s.id;
    const sName=s.data().name;
+
    const box=document.createElement("div");
    box.className="subject-box";
    box.innerHTML=`<strong>${sName}</strong>`;
+
+   subjectsMastery.appendChild(box);
+
    onSnapshot(collection(db,"users",uid,"subjects",sid,"lessons"),ls=>{
     let done=0,total=ls.size;
+
     ls.forEach(l=>{
      const d=l.data();
      if(d.completed) done++;
+
      const row=document.createElement("div");
      row.className="lesson"+(d.completed?" done":"");
+
      const cb=document.createElement("input");
      cb.type="checkbox";
      cb.checked=d.completed;
-     cb.onchange=()=>updateDoc(doc(db,"users",uid,"subjects",sid,"lessons",l.id),{completed:cb.checked});
+     cb.onchange=()=>updateDoc(
+       doc(db,"users",uid,"subjects",sid,"lessons",l.id),
+       {completed:cb.checked}
+     );
+
      row.append(cb,`${sName}: ${d.title}`);
      lessonsList.appendChild(row);
     });
+
     const percent=total?Math.round(done/total*100):0;
     box.innerHTML+=`<div class="progress"><div style="width:${percent}%"></div></div>`;
-    subjectsMastery.appendChild(box);
    });
   });
  });
